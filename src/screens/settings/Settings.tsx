@@ -13,7 +13,7 @@ import {
   Clipboard,
   ToastAndroid,
 } from 'react-native';
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   settingsStorage,
   cacheStorageService,
