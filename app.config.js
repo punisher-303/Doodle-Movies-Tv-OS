@@ -57,6 +57,7 @@ module.exports = () => {
       'expo-build-properties',
       {
         android: {
+          ndkVersion: '28.0.13004108',
           extraMavenRepos: [
             '../../node_modules/@notifee/react-native/android/libs',
           ],
@@ -72,7 +73,7 @@ module.exports = () => {
                 abi: {
                   enable: true,
                   reset: false,
-                  include: ['armeabi-v7a', 'arm64-v8a'],
+                  include: ['armeabi-v7a', 'arm64-v8a', 'x86', 'x86_64'],
                 },
               },
             },
@@ -146,6 +147,9 @@ module.exports = () => {
       },
       platforms: ['ios', 'android'],
       extra: {
+        eas: {
+          projectId: 'a223475f-349c-4f99-89d4-e051c1f3b282',
+        },
         hasFirebase: hasAndroidGoogleServices || hasIosGooglePlist,
       },
     },

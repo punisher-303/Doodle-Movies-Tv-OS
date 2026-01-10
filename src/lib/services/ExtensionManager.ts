@@ -10,7 +10,7 @@ import {
 export class ExtensionManager {
   private static instance: ExtensionManager;
   private baseUrl =
-    'https://raw.githubusercontent.com/Zenda-Cross/doodle-providers/refs/heads/main';
+    'https://raw.githubusercontent.com/punisher-303/doodle-providers/refs/heads/main';
 
   private testMode = false;
   private baseUrlTestMode = '';
