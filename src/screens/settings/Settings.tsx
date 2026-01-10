@@ -49,8 +49,6 @@ import Animated, {
 import { useNavigation } from '@react-navigation/native';
 import RenderProviderFlagIcon from '../../components/RenderProviderFLagIcon';
 
-import RenderProviderFlagIcon from '../../components/RenderProviderFLagIcon';
-
 const isTV = Platform.isTV;
 
 // --- WATCH TOGETHER PERSISTENCE ---
