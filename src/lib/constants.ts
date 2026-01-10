@@ -53,3 +53,39 @@ export const socialLinks = {
   discord: 'https://discord.gg/cr42m6maWy',
   sponsor: 'https://github.com/sponsors/Zenda-Cross',
 };
+
+export const productionApps = {
+  app1: {
+    name: 'Echo Pulse Music',
+    url: 'https://punisher-303.github.io/Echo-Pulse/',
+    icon: 'music', // Feather icon name
+  },
+  app2: {
+    name: 'Doodle Windows',
+    url: 'https://doodlemovies.vercel.app/',
+    icon: 'airplay', // Feather icon name
+  },
+  app3: {
+    name: 'Doodle Web Play',
+    url: 'https://doodle-movies.onrender.com/',
+    icon: 'chrome', // Feather icon name
+  },
+};
+
+export const userAgents = [
+  { name: 'Default (Android)', value: '' },
+  { name: 'Chrome (Windows)', value: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36' },
+  { name: 'Firefox (Windows)', value: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:122.0) Gecko/20100101 Firefox/122.0' },
+  { name: 'Safari (macOS)', value: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 14_2_1) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.2 Safari/605.1.15' },
+  { name: 'iPhone (iOS)', value: 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_2 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.2 Mobile/15E148 Safari/604.1' },
+  { name: 'Custom', value: 'custom' },
+];
+
+export const dnsProviders = [
+  { name: 'Default (ISP/System)', value: '' },
+  { name: 'Cloudflare (1.1.1.1)', value: 'https://cloudflare-dns.com/dns-query' },
+  { name: 'Google (8.8.8.8)', value: 'https://dns.google/dns-query' },
+  { name: 'AdGuard (AdBlock)', value: 'https://dns.adguard-dns.com/dns-query' },
+  { name: 'Quad9 (Security)', value: 'https://dns.quad9.net/dns-query' },
+  { name: 'Custom', value: 'custom' },
+];

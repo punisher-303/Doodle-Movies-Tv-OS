@@ -254,7 +254,7 @@ export const checkForUpdate = async (
   setUpdateLoading(true);
   try {
     const res = await fetch(
-      'https://api.github.com/repos/Zenda-Cross/doodle-movies-app/releases/latest',
+      'https://api.github.com/repos/punisher-303/Doodle-Movies-Tv-OS/releases/latest',
     );
     const data = await res.json();
     const localVersion = Application.nativeApplicationVersion;

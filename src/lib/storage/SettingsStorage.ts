@@ -1,4 +1,4 @@
-import {mainStorage} from './StorageService';
+import { mainStorage } from './StorageService';
 
 /**
  * Storage keys for settings
@@ -36,6 +36,10 @@ export enum SettingsKeys {
 
   // Telemetry (privacy)
   TELEMETRY_OPT_IN = 'telemetryOptIn',
+
+  // Network
+  USER_AGENT = 'userAgent',
+  DNS_URL = 'dnsUrl',
 }
 
 /**
@@ -218,6 +222,23 @@ export class SettingsStorage {
 
   setTelemetryOptIn(enabled: boolean): void {
     mainStorage.setBool(SettingsKeys.TELEMETRY_OPT_IN, enabled);
+  }
+
+  // Network Settings
+  getUserAgent(): string {
+    return mainStorage.getString(SettingsKeys.USER_AGENT) || '';
+  }
+
+  setUserAgent(ua: string): void {
+    mainStorage.setString(SettingsKeys.USER_AGENT, ua);
+  }
+
+  getDnsUrl(): string {
+    return mainStorage.getString(SettingsKeys.DNS_URL) || '';
+  }
+
+  setDnsUrl(url: string): void {
+    mainStorage.setString(SettingsKeys.DNS_URL, url);
   }
 
   // Generic get/set methods for settings not covered by specific methods

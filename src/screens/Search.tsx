@@ -6,16 +6,16 @@ import {
   Pressable,
   findNodeHandle,
 } from 'react-native';
-import React, {useState, useEffect, useCallback, useRef} from 'react';
-import {useNavigation} from '@react-navigation/native';
-import {NativeStackNavigationProp} from '@react-navigation/native-stack';
-import {SearchStackParamList} from '../App';
-import {MaterialIcons, Ionicons, Feather} from '@expo/vector-icons';
-import {TextInput} from 'react-native';
-import {TouchableOpacity} from 'react-native';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { useNavigation } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { SearchStackParamList } from '../App';
+import { MaterialIcons, Ionicons, Feather, MaterialCommunityIcons } from '@expo/vector-icons';
+import { TextInput } from 'react-native';
+import { TouchableOpacity } from 'react-native';
 import useThemeStore from '../lib/zustand/themeStore';
-import {MMKV} from '../lib/Mmkv';
-import {SafeAreaView} from 'react-native-safe-area-context';
+import { MMKV } from '../lib/Mmkv';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import Animated, {
   FadeInDown,
   SlideInRight,
@@ -24,9 +24,9 @@ import Animated, {
   useAnimatedStyle,
   withTiming,
 } from 'react-native-reanimated';
-import {searchOMDB} from '../lib/services/omdb';
+import { searchOMDB } from '../lib/services/omdb';
 import debounce from 'lodash/debounce';
-import {OMDBResult} from '../types/omdb';
+import { OMDBResult } from '../types/omdb';
 
 const isTV = Platform.isTV;
 
@@ -34,7 +34,7 @@ const MAX_VISIBLE_RESULTS = 15; // Limit number of animated items to prevent exc
 const MAX_HISTORY_ITEMS = 30; // Maximum number of history items to store
 
 const Search = () => {
-  const {primary} = useThemeStore(state => state);
+  const { primary } = useThemeStore(state => state);
   const navigation =
     useNavigation<NativeStackNavigationProp<SearchStackParamList>>();
   const [searchText, setSearchText] = useState('');
@@ -154,11 +154,11 @@ const Search = () => {
             backgroundColor.value = withTiming('rgba(255,255,255,0.1)', {
               duration: 150,
             });
-            borderLeftWidth.value = withTiming(4, {duration: 150});
+            borderLeftWidth.value = withTiming(4, { duration: 150 });
           }}
           onBlur={() => {
-            backgroundColor.value = withTiming('transparent', {duration: 150});
-            borderLeftWidth.value = withTiming(0, {duration: 150});
+            backgroundColor.value = withTiming('transparent', { duration: 150 });
+            borderLeftWidth.value = withTiming(0, { duration: 150 });
           }}
           isTVSelectable={true}
           nextFocusUp={
@@ -182,11 +182,11 @@ const Search = () => {
               name="search"
               size={20}
               color="#666"
-              style={{marginRight: 12}}
+              style={{ marginRight: 12 }}
             />
             <View>
-              <Text style={{color: 'white', fontSize: 16}}>{item.Title}</Text>
-              <Text style={{color: 'rgba(255,255,255,0.5)', fontSize: 12}}>
+              <Text style={{ color: 'white', fontSize: 16 }}>{item.Title}</Text>
+              <Text style={{ color: 'rgba(255,255,255,0.5)', fontSize: 12 }}>
                 {item.Type === 'series' ? 'TV Show' : 'Movie'} • {item.Year}
               </Text>
             </View>
@@ -205,7 +205,7 @@ const Search = () => {
               name="search"
               size={20}
               color="#666"
-              style={{marginRight: 12}}
+              style={{ marginRight: 12 }}
             />
             <View>
               <Text className="text-white text-base">{item.Title}</Text>
@@ -245,11 +245,11 @@ const Search = () => {
             backgroundColor.value = withTiming('rgba(255,255,255,0.15)', {
               duration: 150,
             });
-            borderLeftWidth.value = withTiming(4, {duration: 150});
+            borderLeftWidth.value = withTiming(4, { duration: 150 });
           }}
           onBlur={() => {
-            backgroundColor.value = withTiming('transparent', {duration: 150});
-            borderLeftWidth.value = withTiming(0, {duration: 150});
+            backgroundColor.value = withTiming('transparent', { duration: 150 });
+            borderLeftWidth.value = withTiming(0, { duration: 150 });
           }}
           isTVSelectable={true}
           nextFocusUp={
@@ -272,7 +272,7 @@ const Search = () => {
                 borderColor: 'rgba(255,255,255,0.05)',
               },
             ]}>
-            <View style={{flexDirection: 'row', alignItems: 'center', flex: 1}}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
               <View
                 style={{
                   backgroundColor: 'rgba(255,255,255,0.1)',
@@ -281,7 +281,7 @@ const Search = () => {
                 }}>
                 <Ionicons name="time-outline" size={16} color={primary} />
               </View>
-              <Text style={{color: 'white', fontSize: 14, marginLeft: 8}}>
+              <Text style={{ color: 'white', fontSize: 14, marginLeft: 8 }}>
                 {search}
               </Text>
             </View>
@@ -351,7 +351,7 @@ const Search = () => {
                 paddingVertical: 2,
               },
             ]}>
-            <Text style={{color: '#ef4444', fontSize: 12}}>Clear All</Text>
+            <Text style={{ color: '#ef4444', fontSize: 12 }}>Clear All</Text>
           </Animated.View>
         </Pressable>
       );
@@ -376,11 +376,29 @@ const Search = () => {
         entering={isTV ? undefined : FadeInDown.springify()}
         layout={isTV ? undefined : Layout.springify()}
         className="px-4 pt-4">
-        <Text
-          className="text-white font-bold mb-3"
-          style={{fontSize: isTV ? 28 : 20}}>
-          Search
-        </Text>
+        <View className="flex-row justify-between items-center mb-3">
+          <Text
+            className="text-white font-bold"
+            style={{ fontSize: isTV ? 28 : 20 }}>
+            Search
+          </Text>
+          <View className="flex-row space-x-2">
+            <TouchableOpacity
+              onPress={() => navigation.navigate('GenreList')}
+              className="bg-white/5 rounded-full p-2 border border-white/10"
+              {...(isTV ? { isTVSelectable: true } : {})}
+            >
+              <Ionicons name="grid-outline" size={isTV ? 24 : 20} color={primary} />
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => navigation.navigate('Suggestion')}
+              className="bg-white/5 rounded-full p-2 border border-white/10 ml-2"
+              {...(isTV ? { isTVSelectable: true } : {})}
+            >
+              <MaterialIcons name="movie-filter" size={isTV ? 24 : 20} color={primary} />
+            </TouchableOpacity>
+          </View>
+        </View>
         <View className="flex-row items-center space-x-3 mb-2">
           <View className="flex-1">
             <View
@@ -399,7 +417,7 @@ const Search = () => {
                   />
                   <TextInput
                     className="flex-1 text-white ml-3"
-                    style={{fontSize: isTV ? 18 : 16}}
+                    style={{ fontSize: isTV ? 18 : 16 }}
                     placeholder="Search anime..."
                     placeholderTextColor="#666"
                     value={searchText}
@@ -437,7 +455,7 @@ const Search = () => {
           <FlatList
             data={searchResults}
             keyExtractor={item => item.imdbID.toString()}
-            renderItem={({item, index}) => (
+            renderItem={({ item, index }) => (
               <TVFocusableResultItem item={item} index={index} />
             )}
             contentContainerStyle={{
@@ -454,7 +472,7 @@ const Search = () => {
             <View className="flex-row items-center justify-between mb-2">
               <Text
                 className="text-white/90 font-semibold"
-                style={{fontSize: isTV ? 18 : 16}}>
+                style={{ fontSize: isTV ? 18 : 16 }}>
                 Recent Searches
               </Text>
               <TVFocusableClearButton />
@@ -464,8 +482,8 @@ const Search = () => {
               data={searchHistory}
               keyExtractor={(item, index) => `history-${index}`}
               showsVerticalScrollIndicator={false}
-              contentContainerStyle={{paddingBottom: 20}}
-              renderItem={({item: search, index}) => (
+              contentContainerStyle={{ paddingBottom: 20 }}
+              renderItem={({ item: search, index }) => (
                 <TVFocusableHistoryItem search={search} index={index} />
               )}
             />
@@ -480,12 +498,12 @@ const Search = () => {
             </View>
             <Text
               className="text-white/70 text-center"
-              style={{fontSize: isTV ? 18 : 16}}>
+              style={{ fontSize: isTV ? 18 : 16 }}>
               Search for your favorite anime
             </Text>
             <Text
               className="text-white/40 text-center mt-1"
-              style={{fontSize: isTV ? 16 : 14}}>
+              style={{ fontSize: isTV ? 16 : 14 }}>
               Your recent searches will appear here
             </Text>
           </AnimatedContainer>
