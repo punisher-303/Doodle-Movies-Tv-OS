@@ -20,12 +20,13 @@ import WebView from './screens/WebView';
 import SearchResults from './screens/SearchResults';
 import * as SystemUI from 'expo-system-ui';
 // import DisableProviders from './screens/settings/DisableProviders';
-import About, { checkForUpdate } from './screens/settings/About';
+import About, { checkForUpdate, downloadUpdate } from './screens/settings/About';
+import IOSModal from './components/IOSModal';
 import BootSplash from 'react-native-bootsplash';
 import { enableFreeze, enableScreens } from 'react-native-screens';
 import Preferences from './screens/settings/Preference';
 import useThemeStore from './lib/zustand/themeStore';
-import { Dimensions, LogBox, ViewStyle, Platform } from 'react-native';
+import { Dimensions, LogBox, ViewStyle, Platform, Linking } from 'react-native';
 import { EpisodeLink } from './lib/providers/types';
 import RNReactNativeHapticFeedback from 'react-native-haptic-feedback';
 import TabBarBackgound from './components/TabBarBackgound';
@@ -184,6 +185,25 @@ const App = () => {
     createNativeStackNavigator<WatchHistoryStackParamList>();
   const { primary } = useThemeStore(state => state);
   const hasFirebase = Boolean(Constants?.expoConfig?.extra?.hasFirebase);
+
+  const [updateData, setUpdateData] = React.useState<any>(null);
+
+  const performUpdate = () => {
+    if (!updateData) return;
+
+    setUpdateData(null); // Close modal
+
+    const autoDownload = settingsStorage.isAutoDownloadEnabled();
+
+    if (autoDownload) {
+      downloadUpdate(
+        updateData?.assets?.[2]?.browser_download_url || updateData?.assets?.[0]?.browser_download_url,
+        updateData.assets?.[2]?.name || updateData.assets?.[0]?.name,
+      );
+    } else {
+      Linking.openURL(updateData.play_store_url || updateData.html_url);
+    }
+  };
 
   const showTabBarLables = settingsStorage.showTabBarLabels();
 
@@ -500,7 +520,11 @@ const App = () => {
 
   useEffect(() => {
     if (settingsStorage.isAutoCheckUpdateEnabled()) {
-      checkForUpdate(() => { }, settingsStorage.isAutoDownloadEnabled(), false);
+      checkForUpdate(undefined, false).then((data) => {
+        if (data) {
+          setUpdateData(data);
+        }
+      });
     }
   }, []);
 
@@ -600,6 +624,16 @@ const App = () => {
           </SafeAreaView>
         </QueryClientProvider>
       </SafeAreaProvider>
+      <IOSModal
+        visible={!!updateData}
+        title={`Update Available: ${updateData?.tag_name}`}
+        message={updateData?.body || 'A new version of the app is available.'}
+        actions={[
+          { text: "Update Now", onPress: performUpdate },
+          { text: "Later", style: 'cancel', onPress: () => setUpdateData(null) }
+        ]}
+        onClose={() => setUpdateData(null)}
+      />
     </GlobalErrorBoundary>
   );
 };

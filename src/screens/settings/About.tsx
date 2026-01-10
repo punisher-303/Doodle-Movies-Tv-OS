@@ -18,6 +18,8 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import useThemeStore from '../../lib/zustand/themeStore';
 import * as Application from 'expo-application';
 import { notificationService } from '../../lib/services/Notification';
+import IOSModal from '../../components/IOSModal';
+
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -195,7 +197,7 @@ const TVFocusableButton = ({
 };
 
 // download update
-const downloadUpdate = async (url: string, name: string) => {
+export const downloadUpdate = async (url: string, name: string) => {
   console.log('downloading', url, name);
   await notificationService.requestPermission();
 
@@ -247,55 +249,49 @@ const downloadUpdate = async (url: string, name: string) => {
 
 // handle check for update
 export const checkForUpdate = async (
-  setUpdateLoading: React.Dispatch<React.SetStateAction<boolean>>,
-  autoDownload: boolean,
+  setUpdateLoading?: React.Dispatch<React.SetStateAction<boolean>>,
   showToast: boolean = true,
-) => {
-  setUpdateLoading(true);
+): Promise<any | null> => {
+  if (setUpdateLoading) setUpdateLoading(true);
   try {
     const res = await fetch(
       'https://api.github.com/repos/punisher-303/Doodle-Movies-Tv-OS/releases/latest',
     );
     const data = await res.json();
-    const localVersion = Application.nativeApplicationVersion;
-    const remoteVersion = Number(
-      data.tag_name.replace('v', '')?.split('.').join(''),
-    );
-    if (compareVersions(localVersion || '', data.tag_name.replace('v', ''))) {
-      ToastAndroid.show('New update available', ToastAndroid.SHORT);
-      Alert.alert(`Update v${localVersion} -> ${data.tag_name}`, data.body, [
-        { text: 'Cancel' },
-        {
-          text: 'Update',
-          onPress: () =>
-            autoDownload
-              ? downloadUpdate(
-                data?.assets?.[2]?.browser_download_url,
-                data.assets?.[2]?.name,
-              )
-              : Linking.openURL(data.html_url),
-        },
-      ]);
-      console.log(
-        'local version',
-        localVersion,
-        'remote version',
-        remoteVersion,
+
+    // Fetch dynamic download URL
+    let play_store_url = data.html_url;
+    try {
+      const urlRes = await fetch(
+        'https://raw.githubusercontent.com/punisher-303/Doodle-Movies-Tv-OS/main/updateurl/update_url.json'
       );
+      const urlData = await urlRes.json();
+      if (urlData.play_store_url) {
+        play_store_url = urlData.play_store_url;
+      }
+    } catch (e) {
+      console.log('Failed to fetch dynamic url', e);
+    }
+
+    const localVersion = Application.nativeApplicationVersion;
+    // const remoteVersion = Number(
+    //   data.tag_name.replace('v', '')?.split('.').join(''),
+    // );
+
+    // Simple version compare or use helper
+    if (compareVersions(localVersion || '', data.tag_name.replace('v', ''))) {
+      if (showToast) ToastAndroid.show('New update available', ToastAndroid.SHORT);
+      if (setUpdateLoading) setUpdateLoading(false);
+      return { ...data, play_store_url };
     } else {
       showToast && ToastAndroid.show('App is up to date', ToastAndroid.SHORT);
-      console.log(
-        'local version',
-        localVersion,
-        'remote version',
-        remoteVersion,
-      );
     }
   } catch (error) {
-    ToastAndroid.show('Failed to check for update', ToastAndroid.SHORT);
+    if (showToast) ToastAndroid.show('Failed to check for update', ToastAndroid.SHORT);
     console.log('Update error', error);
   }
-  setUpdateLoading(false);
+  if (setUpdateLoading) setUpdateLoading(false);
+  return null;
 };
 
 const About = () => {
@@ -307,6 +303,33 @@ const About = () => {
   const [autoCheckUpdate, setAutoCheckUpdate] = useState<boolean>(
     settingsStorage.isAutoCheckUpdateEnabled(),
   );
+
+  const [updateData, setUpdateData] = useState<any>(null);
+
+  const handleManualCheck = async () => {
+    const data = await checkForUpdate(setUpdateLoading, true);
+    if (data) {
+      setUpdateData(data);
+    }
+  };
+
+  const performUpdate = () => {
+    if (!updateData) return;
+    setUpdateData(null); // Close modal 
+
+    // Find the correct asset or fallback
+    // Usually index 2 in Android app, but verify logic. 
+    // Fallback to html_url if autoDownload is missing or fails.
+    if (autoDownload) {
+      // Using simpler safe access logic or stick to user's "exact" index 2
+      downloadUpdate(
+        updateData?.assets?.[2]?.browser_download_url || updateData?.assets?.[0]?.browser_download_url,
+        updateData.assets?.[2]?.name || updateData.assets?.[0]?.name,
+      );
+    } else {
+      Linking.openURL(updateData.play_store_url || updateData.html_url);
+    }
+  };
 
   return (
     <View
@@ -361,7 +384,7 @@ const About = () => {
 
         {/* Check Updates Button */}
         <TVFocusableButton
-          onPress={() => checkForUpdate(setUpdateLoading, autoDownload, true)}
+          onPress={handleManualCheck}
           disabled={updateLoading}
           icon={
             <MaterialCommunityIcons name="update" size={22} color="white" />
@@ -370,6 +393,18 @@ const About = () => {
           primary={primary}
         />
       </View>
+
+      {/* Update Modal */}
+      <IOSModal
+        visible={!!updateData}
+        title={`Update Available: ${updateData?.tag_name}`}
+        message={updateData?.body || 'A new version of the app is available.'}
+        actions={[
+          { text: "Update Now", onPress: performUpdate },
+          { text: "Cancel", style: 'cancel', onPress: () => setUpdateData(null) }
+        ]}
+        onClose={() => setUpdateData(null)}
+      />
     </View>
   );
 };
