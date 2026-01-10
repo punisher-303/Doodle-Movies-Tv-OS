@@ -1,4 +1,4 @@
-import React, {useEffect, useState, useRef, useCallback, useMemo} from 'react';
+import React, { useEffect, useState, useRef, useCallback, useMemo } from 'react';
 import {
   ScrollView,
   Text,
@@ -9,8 +9,9 @@ import {
   TouchableNativeFeedback,
   Pressable,
   useTVEventHandler,
+  TextInput,
 } from 'react-native';
-import {isTV} from '../../lib/tv/constants';
+import { isTV } from '../../lib/tv/constants';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -19,12 +20,12 @@ import Animated, {
   withSequence,
   withDelay,
 } from 'react-native-reanimated';
-import {NativeStackScreenProps} from '@react-navigation/native-stack';
-import {RootStackParamList} from '../../App';
-import {cacheStorage, settingsStorage} from '../../lib/storage';
-import {OrientationLocker, LANDSCAPE} from 'react-native-orientation-locker';
+import { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { RootStackParamList } from '../../App';
+import { cacheStorage, settingsStorage } from '../../lib/storage';
+import { OrientationLocker, LANDSCAPE } from 'react-native-orientation-locker';
 import VideoPlayer from '@8man/react-native-media-console';
-import {useFocusEffect, useNavigation} from '@react-navigation/native';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import {
   VideoRef,
@@ -36,20 +37,20 @@ import {
 } from 'react-native-video';
 import useContentStore from '../../lib/zustand/contentStore';
 // import {CastButton, useRemoteMediaClient} from 'react-native-google-cast';
-import {SafeAreaView} from 'react-native-safe-area-context';
+import { SafeAreaView } from 'react-native-safe-area-context';
 // import GoogleCast from 'react-native-google-cast';
 import * as DocumentPicker from 'expo-document-picker';
 import useThemeStore from '../../lib/zustand/themeStore';
-import {FlashList} from '@shopify/flash-list';
+import { FlashList } from '@shopify/flash-list';
 import SearchSubtitles from '../../components/SearchSubtitles';
 import useWatchHistoryStore from '../../lib/zustand/watchHistrory';
-import {useStream, useVideoSettings} from '../../lib/hooks/useStream';
+import { useStream, useVideoSettings } from '../../lib/hooks/useStream';
 import {
   usePlayerProgress,
   usePlayerSettings,
 } from '../../lib/hooks/usePlayerSettings';
 import * as NavigationBar from 'expo-navigation-bar';
-import {StatusBar} from 'react-native';
+import { StatusBar } from 'react-native';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Player'>;
 
@@ -64,6 +65,434 @@ const goFullScreen = () => {
   // `expo-status-bar` handles the top bar
 };
 
+// --- CONFIG INTERFACE ---
+interface FirebaseConfig {
+  apiKey: string;
+  authDomain: string;
+  databaseURL: string;
+  projectId: string;
+  storageBucket: string;
+  messagingSenderId: string;
+  appId: string;
+  measurementId?: string;
+  [key: string]: any;
+}
+
+// --- FALLBACK CONFIGURATION ---
+const FALLBACK_FIREBASE_CONFIG: FirebaseConfig = {
+  apiKey: 'AIzaSyAqvf4YoIdROBLrdKWYzr-ZTuBsXqBw-28',
+  authDomain: 'doodlemovies-3135c.firebaseapp.com',
+  databaseURL: 'https://doodlemovies-3135c-default-rtdb.firebaseio.com',
+  projectId: 'doodlemovies-3135c',
+  storageBucket: 'doodlemovies-3135c.firebasestorage.app',
+  messagingSenderId: '460356775578',
+  appId: '1:460356775578:web:cb82f0178bf4bd597cf923',
+  measurementId: 'G-BLGF9JBS0P',
+};
+
+// --- UTILITY FOR SANITIZING FIREBASE KEYS ---
+const sanitizeFirebaseKey = (key: string): string => {
+  if (!key) return '';
+  return key
+    .replace(/\./g, '(DOT)')
+    .replace(/#/g, '(HASH)')
+    .replace(/\$/g, '(DOLLAR)')
+    .replace(/\[/g, '(LBRACKET)')
+    .replace(/\]/g, '(RBRACKET)')
+    .replace(/\//g, '(SLASH)')
+    .trim();
+};
+
+const generateRandomId = (length: number = 6) => {
+  const chars =
+    'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+  let result = '';
+  for (let i = 0; i < length; i++) {
+    result += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return result;
+};
+
+// --- ROBUST BASE64 IMPLEMENTATION ---
+const toUTF8BinaryString = (str: string): string => {
+  return encodeURIComponent(str).replace(/%([0-9A-F]{2})/g, (match, p1) =>
+    String.fromCharCode(parseInt(p1, 16)),
+  );
+};
+
+const fromUTF8BinaryString = (str: string): string => {
+  try {
+    return decodeURIComponent(
+      str
+        .split('')
+        .map(function (c) {
+          return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+        })
+        .join(''),
+    );
+  } catch (e) {
+    return str;
+  }
+};
+
+const chars =
+  'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=';
+
+const base64Encode = (input: string): string => {
+  try {
+    if (typeof global.btoa === 'function') {
+      return global.btoa(toUTF8BinaryString(input));
+    }
+  } catch (e) { }
+
+  let str = input;
+  let output = '';
+  for (
+    let block = 0, charCode, i = 0, map = chars;
+    str.charAt(i | 0) || ((map = '='), i % 1);
+    output += map.charAt(63 & (block >> (8 - (i % 1) * 8)))
+  ) {
+    charCode = str.charCodeAt((i += 3 / 4));
+    block = (block << 8) | charCode;
+  }
+  return output;
+};
+
+
+const base64Decode = (input: string): string | null => {
+  try {
+    if (typeof global.atob === 'function') {
+      const decodedBinary = global.atob(input);
+      return fromUTF8BinaryString(decodedBinary);
+    }
+  } catch (e) { }
+
+  try {
+    let str = input.replace(/=+$/, '');
+    let output = '';
+    if (str.length % 4 === 1) {
+      return null;
+    }
+    for (
+      let bc = 0, bs = 0, buffer, i = 0;
+      (buffer = str.charAt(i++));
+      // @ts-ignore
+      ~buffer && ((bs = bc % 4 ? bs * 64 + buffer : buffer), bc++ % 4)
+        ? (output += String.fromCharCode(255 & (bs >> ((-2 * bc) & 6))))
+        : 0
+    ) {
+      // @ts-ignore
+      buffer = chars.indexOf(buffer);
+    }
+    return output;
+  } catch (e) {
+    return null;
+  }
+};
+
+// --- STORAGE KEYS ---
+const KEY_USER_NICKNAME = 'userNickname';
+const KEY_USER_PASSWORD = 'userPassword';
+
+const getUserNickname = (): string => {
+  return cacheStorage.getString(KEY_USER_NICKNAME) || '';
+};
+
+const getUserPassword = (): string => {
+  return cacheStorage.getString(KEY_USER_PASSWORD) || '';
+};
+
+// --- REALTIME SYNC HOOK ---
+interface ChatMessage {
+  userId: string;
+  message: string;
+  timestamp: number;
+}
+
+interface SyncData {
+  time: number;
+  lastUpdated: number;
+  userId: string;
+  isPlaying: boolean;
+}
+
+const useRealtimeSync = (
+  sessionId: string,
+  isEnabled: boolean,
+  isLeader: boolean,
+  localNickname: string,
+  otherUserNicknameHint: string,
+  isSyncingVideo: boolean,
+) => {
+  const [firebaseConfig, setFirebaseConfig] = useState<FirebaseConfig | null>(
+    null,
+  );
+  const [configLoading, setConfigLoading] = useState(true);
+
+  // Sanitized Session ID (Room ID)
+  const safeSessionId = useMemo(
+    () => sanitizeFirebaseKey(sessionId),
+    [sessionId],
+  );
+
+  useEffect(() => {
+    const loadFirebaseConfig = async () => {
+      try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 5000);
+
+        const res = await fetch('https://doodleconfigs.vercel.app/', {
+          signal: controller.signal,
+          headers: { 'Cache-Control': 'no-cache' },
+        });
+        clearTimeout(timeoutId);
+
+        if (!res.ok) throw new Error(`Server status: ${res.status}`);
+        const cfg = await res.json();
+        setFirebaseConfig(cfg);
+      } catch (error) {
+        console.warn('Using fallback config:', error);
+        setFirebaseConfig(FALLBACK_FIREBASE_CONFIG);
+      } finally {
+        setConfigLoading(false);
+      }
+    };
+    loadFirebaseConfig();
+  }, []);
+
+  const syncRef = useMemo(() => {
+    if (!firebaseConfig?.databaseURL || !safeSessionId) return null;
+    return `${firebaseConfig.databaseURL}/sessions/${safeSessionId}.json`;
+  }, [firebaseConfig, safeSessionId]);
+
+  const chatRef = useMemo(() => {
+    if (!firebaseConfig?.databaseURL || !safeSessionId) return null;
+    return `${firebaseConfig.databaseURL}/chats/${safeSessionId}.json`;
+  }, [firebaseConfig, safeSessionId]);
+
+  const [chatLog, setChatLog] = useState<string[]>([]);
+  const [rawChatData, setRawChatData] = useState<any>(null);
+  const [remoteTime, setRemoteTime] = useState<number | null>(null);
+  const [remoteIsPlaying, setRemoteIsPlaying] = useState<boolean>(true);
+  const [isReceivingUpdates, setIsReceivingUpdates] = useState(false);
+
+  const [syncedOtherUser, setSyncedOtherUser] = useState(otherUserNicknameHint);
+  const userNickname = useRef(localNickname);
+
+  useEffect(() => {
+    userNickname.current = localNickname;
+  }, [localNickname]);
+
+  useEffect(() => {
+    if (otherUserNicknameHint) {
+      setSyncedOtherUser(otherUserNicknameHint);
+    }
+  }, [otherUserNicknameHint]);
+
+  const processChatData = useCallback(
+    (data: any) => {
+      if (!data) return;
+
+      const messages: ChatMessage[] = Object.keys(data)
+        .map(key => {
+          let finalMessage = data[key].message;
+          const decoded = base64Decode(data[key].message);
+          if (decoded !== null && decoded.length > 0) {
+            finalMessage = decoded;
+          }
+          return { ...data[key], message: finalMessage };
+        })
+        .filter(msg => msg !== null) as ChatMessage[];
+
+      const sortedMessages = messages.sort((a, b) => a.timestamp - b.timestamp);
+
+      if (!syncedOtherUser) {
+        const possiblePartner = sortedMessages.find(
+          m => m.userId !== localNickname,
+        );
+        if (possiblePartner) {
+          setSyncedOtherUser(possiblePartner.userId);
+        }
+      }
+
+      setChatLog(
+        sortedMessages.map(msg =>
+          msg.userId === localNickname
+            ? `You: ${msg.message}`
+            : `${msg.userId}: ${msg.message}`,
+        ),
+      );
+    },
+    [localNickname, syncedOtherUser],
+  );
+
+  useEffect(() => {
+    if (rawChatData) {
+      processChatData(rawChatData);
+    }
+  }, [syncedOtherUser, processChatData, rawChatData]);
+
+  const fetchChat = useCallback(async () => {
+    if (!chatRef) return;
+    try {
+      // @ts-ignore
+      const response = await fetch(chatRef);
+      if (!response.ok) return;
+      const data = await response.json();
+      setRawChatData(data);
+      processChatData(data);
+    } catch (e) {
+      console.error('Error fetching chat:', e);
+    }
+  }, [chatRef, processChatData]);
+
+  const snapToLeader = useCallback(async () => {
+    if (!syncRef) return false;
+    try {
+      // @ts-ignore
+      const response = await fetch(syncRef);
+      const data: SyncData = await response.json();
+      if (
+        data &&
+        data.time !== undefined &&
+        data.userId !== userNickname.current
+      ) {
+        return { time: data.time, isPlaying: data.isPlaying };
+      }
+      return false;
+    } catch (e) {
+      console.error('Error fetching time for snap:', e);
+      return false;
+    }
+  }, [syncRef]);
+
+  useEffect(() => {
+    if (
+      !isEnabled ||
+      !sessionId ||
+      sessionId.length === 0 ||
+      !syncRef ||
+      !chatRef
+    )
+      return;
+
+    fetchChat();
+
+    const fetchSyncTime = async () => {
+      try {
+        // @ts-ignore
+        const response = await fetch(syncRef);
+        const data: SyncData = await response.json();
+        if (data && data.time !== undefined) {
+          if (data.userId !== userNickname.current) {
+            setRemoteTime(data.time);
+            setRemoteIsPlaying(data.isPlaying);
+            setIsReceivingUpdates(true);
+            if (!syncedOtherUser) {
+              setSyncedOtherUser(data.userId);
+            }
+          } else {
+            setIsReceivingUpdates(false);
+          }
+        }
+      } catch (e) {
+        console.error('Error fetching sync time:', e);
+      }
+    };
+
+    const chatIntervalId = setInterval(() => {
+      fetchChat();
+    }, 500);
+
+    const syncIntervalId = setInterval(() => {
+      fetchSyncTime();
+    }, 2000);
+
+    return () => {
+      clearInterval(chatIntervalId);
+      clearInterval(syncIntervalId);
+    };
+  }, [
+    sessionId,
+    isEnabled,
+    chatRef,
+    syncRef,
+    isLeader,
+    fetchChat,
+    syncedOtherUser,
+    isSyncingVideo,
+  ]);
+
+  const sendChat = useCallback(
+    async (message: string) => {
+      if (!chatRef) return;
+      setChatLog(prev => [...prev, `You: ${message}`]);
+      const encodedMessage = base64Encode(message);
+      const chatMessage: ChatMessage = {
+        userId: userNickname.current,
+        message: encodedMessage,
+        timestamp: Date.now(),
+      };
+      try {
+        const response = await fetch(chatRef, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(chatMessage),
+        });
+        if (response.ok) {
+          // @ts-ignore
+          fetch(chatRef)
+            .then(res => res.json())
+            .then(data => {
+              setRawChatData(data);
+            });
+        }
+      } catch (e) {
+        console.error('Error sending chat:', e);
+        ToastAndroid.show('Failed to send message', ToastAndroid.SHORT);
+      }
+    },
+    [chatRef, userNickname],
+  );
+
+  const sendTimeUpdate = useCallback(
+    async (time: number, isPlaying: boolean) => {
+      if (!isLeader || !syncRef) return;
+      const syncData: SyncData = {
+        time: Math.floor(time),
+        isPlaying: isPlaying,
+        lastUpdated: Date.now(),
+        userId: userNickname.current,
+      };
+      try {
+        await fetch(syncRef, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(syncData),
+        });
+      } catch (e) {
+        console.error('Error sending sync time:', e);
+      }
+    },
+    [syncRef, isLeader, userNickname],
+  );
+
+  return {
+    chatLog,
+    remoteTime,
+    remoteIsPlaying,
+    sendChat,
+    sendTimeUpdate,
+    isReceivingUpdates,
+    userNickname: userNickname.current,
+    syncedOtherUser,
+    safeSessionId,
+    configLoading,
+    firebaseConfig,
+    snapToLeader,
+  };
+};
+
 const exitFullScreen = () => {
   if (Platform.OS === 'android') {
     // Show the navigation bar
@@ -74,11 +503,115 @@ const exitFullScreen = () => {
   }
 };
 
-const Player = ({route}: Props): React.JSX.Element => {
-  const {primary} = useThemeStore(state => state);
-  const {provider} = useContentStore();
+// --- TV NICKNAME & PASSWORD INPUT OVERLAY ---
+interface NicknameOverlayProps {
+  primary: string;
+  currentNickname: string;
+  setNickname: (name: string) => void;
+  currentPassword: string;
+  setPassword: (pass: string) => void;
+  onConfirm: () => void;
+  isAuthenticating: boolean;
+}
+
+const TVNicknameInputOverlay = ({
+  primary,
+  currentNickname,
+  setNickname,
+  currentPassword,
+  setPassword,
+  onConfirm,
+  isAuthenticating,
+}: NicknameOverlayProps) => {
+  const [focusedField, setFocusedField] = useState<'nickname' | 'password' | 'confirm' | null>('nickname');
+
+  return (
+    <View
+      className="absolute top-0 left-0 right-0 bottom-0 z-[100] bg-black/90 justify-center items-center">
+      <View className="bg-zinc-800 p-8 rounded-xl w-[500px]">
+        <Text className="text-white text-2xl font-bold mb-4 text-center">
+          Watch Together Profile
+        </Text>
+        <Text className="text-gray-300 text-base mb-6 text-center">
+          Enter nickname and password to sync.
+        </Text>
+
+        <Text className="text-gray-400 text-sm ml-1 mb-2">Nickname</Text>
+        <TextInput
+          style={{
+            backgroundColor: focusedField === 'nickname' ? '#404040' : '#27272a',
+            color: 'white',
+            borderRadius: 8,
+            padding: 12,
+            fontSize: 16,
+            marginBottom: 16,
+            borderWidth: focusedField === 'nickname' ? 2 : 0,
+            borderColor: primary,
+          }}
+          placeholder="Enter nickname (e.g., 'Neo')"
+          placeholderTextColor="#A1A1AA"
+          value={currentNickname}
+          onChangeText={setNickname}
+          maxLength={20}
+          editable={!isAuthenticating}
+          onFocus={() => setFocusedField('nickname')}
+        />
+
+        <Text className="text-gray-400 text-sm ml-1 mb-2">Password</Text>
+        <TextInput
+          style={{
+            backgroundColor: focusedField === 'password' ? '#404040' : '#27272a',
+            color: 'white',
+            borderRadius: 8,
+            padding: 12,
+            fontSize: 16,
+            marginBottom: 24,
+            borderWidth: focusedField === 'password' ? 2 : 0,
+            borderColor: primary,
+          }}
+          placeholder="Enter password"
+          placeholderTextColor="#A1A1AA"
+          value={currentPassword}
+          onChangeText={setPassword}
+          secureTextEntry={true}
+          editable={!isAuthenticating}
+          onFocus={() => setFocusedField('password')}
+        />
+
+        <Pressable
+          onPress={onConfirm}
+          disabled={
+            currentNickname.trim().length < 3 ||
+            currentPassword.length < 1 ||
+            isAuthenticating
+          }
+          onFocus={() => setFocusedField('confirm')}
+          style={({ pressed }) => ({
+            backgroundColor:
+              currentNickname.trim().length >= 3 && currentPassword.length >= 1
+                ? primary
+                : '#3F3F46',
+            opacity: pressed ? 0.8 : 1,
+            padding: 16,
+            borderRadius: 8,
+            alignItems: 'center',
+            borderWidth: focusedField === 'confirm' ? 2 : 0,
+            borderColor: 'white',
+          })}>
+          <Text className="text-white text-lg font-semibold">
+            {isAuthenticating ? 'Verifying...' : 'Confirm Identity'}
+          </Text>
+        </Pressable>
+      </View>
+    </View>
+  );
+};
+
+const Player = ({ route }: Props): React.JSX.Element => {
+  const { primary } = useThemeStore(state => state);
+  const { provider } = useContentStore();
   const navigation = useNavigation();
-  const {addItem, updatePlaybackInfo, updateItemWithInfo} =
+  const { addItem, updatePlaybackInfo, updateItemWithInfo } =
     useWatchHistoryStore();
 
   // Player ref
@@ -113,20 +646,20 @@ const Player = ({route}: Props): React.JSX.Element => {
   // Animated styles
   const loadingContainerStyle = useAnimatedStyle(() => ({
     opacity: loadingOpacity.value,
-    transform: [{scale: loadingScale.value}],
+    transform: [{ scale: loadingScale.value }],
   }));
 
   const loadingIconStyle = useAnimatedStyle(() => ({
-    transform: [{rotate: `${loadingRotation.value}deg`}],
+    transform: [{ rotate: `${loadingRotation.value}deg` }],
   }));
 
   const lockButtonStyle = useAnimatedStyle(() => ({
-    transform: [{translateY: lockButtonTranslateY.value}],
+    transform: [{ translateY: lockButtonTranslateY.value }],
     opacity: lockButtonOpacity.value,
   }));
 
   const controlsStyle = useAnimatedStyle(() => ({
-    transform: [{translateY: controlsTranslateY.value}],
+    transform: [{ translateY: controlsTranslateY.value }],
     opacity: controlsOpacity.value,
   }));
 
@@ -135,10 +668,108 @@ const Player = ({route}: Props): React.JSX.Element => {
   }));
 
   const settingsStyle = useAnimatedStyle(() => ({
-    transform: [{translateY: settingsTranslateY.value}],
+    transform: [{ translateY: settingsTranslateY.value }],
 
     opacity: settingsOpacity.value,
   }));
+
+  // --- WATCH TOGETHER STATE ---
+  const [agoraUid] = useState(Math.floor(Math.random() * 100000));
+  const [watchTogetherMode, setWatchTogetherModeState] = useState(false);
+  const [showChatOverlay, setShowChatOverlay] = useState(false);
+  const [isSessionLeader, setIsSessionLeader] = useState(true);
+  const [isPlaying, setIsPlaying] = useState(true);
+
+  // IDENTITY
+  const [userNickname, setUserNickname] = useState(getUserNickname());
+  const [userPassword, setUserPassword] = useState(getUserPassword());
+  const [showNicknameModal, setShowNicknameModal] = useState(false);
+  const [isAuthenticating, setIsAuthenticating] = useState(false);
+
+  // Parse params
+  useEffect(() => {
+    if (route.params?.syncLink) {
+      setWatchTogetherModeState(true);
+      if (route.params.leader) {
+        // If we are joining via link, we are NOT the leader initially (unless we are re-joining own room, logic can vary but usually link = joiner)
+        // Actually, if we created the room, we are leader. If we joined via link, we are not.
+        // But the params say 'leader' is a string ID? No, check Android logic.
+        // Android: leader = getParam('leader').
+        setIsSessionLeader(false);
+      } else {
+        setIsSessionLeader(true);
+      }
+    }
+  }, [route.params]);
+
+  const {
+    chatLog,
+    remoteTime,
+    remoteIsPlaying,
+    sendChat,
+    sendTimeUpdate,
+    isReceivingUpdates,
+    syncedOtherUser,
+    safeSessionId,
+    configLoading,
+    snapToLeader,
+  } = useRealtimeSync(
+    route.params?.roomId || '',
+    watchTogetherMode,
+    isSessionLeader,
+    userNickname, // local nickname
+    '', // other user hint
+    true, // isSyncingVideo
+  );
+
+  // --- HANDLE PROFILE CONFIRMATION ---
+  const handleProfileConfirm = async () => {
+    setIsAuthenticating(true);
+    // Simulate delay or check (simple local storage save for now)
+    setTimeout(() => {
+      cacheStorage.setString(KEY_USER_NICKNAME, userNickname);
+      cacheStorage.setString(KEY_USER_PASSWORD, userPassword);
+      setIsAuthenticating(false);
+      setShowNicknameModal(false);
+      ToastAndroid.show('Profile Verified', ToastAndroid.SHORT);
+    }, 1000);
+  };
+
+  // Check if nickname is needed
+  useEffect(() => {
+    if (watchTogetherMode && (!userNickname || userNickname.length < 3)) {
+      setShowNicknameModal(true);
+    }
+  }, [watchTogetherMode, userNickname]);
+
+  // --- SYNC EFFECTS ---
+  // 1. If we are follower and receive update
+  useEffect(() => {
+    if (!isSessionLeader && isReceivingUpdates && remoteTime !== null && playerRef.current && videoPositionRef.current) {
+      const currentPos = videoPositionRef.current.position;
+      const diff = Math.abs(currentPos - remoteTime);
+
+      // Snap if diff > 2 seconds
+      if (diff > 2) {
+        console.log('Snapping to leader:', remoteTime);
+        playerRef.current.seek(remoteTime);
+        setToastMessage(`Synced to ${Math.floor(remoteTime)}s`);
+        setShowToast(true);
+        setTimeout(() => setShowToast(false), 2000);
+      }
+
+      // Sync Play/Pause
+      if (remoteIsPlaying !== isPlaying) {
+        if (remoteIsPlaying) {
+          playerRef.current.resume();
+        } else {
+          playerRef.current.pause();
+        }
+        setIsPlaying(remoteIsPlaying);
+      }
+    }
+  }, [remoteTime, remoteIsPlaying, isReceivingUpdates, isSessionLeader, isPlaying]);
+
 
   // Active episode state
   const [activeEpisode, setActiveEpisode] = useState(
@@ -205,7 +836,7 @@ const Player = ({route}: Props): React.JSX.Element => {
   } = usePlayerSettings();
 
   // Custom hook for progress handling
-  const {videoPositionRef, handleProgress} = usePlayerProgress({
+  const { videoPositionRef, handleProgress } = usePlayerProgress({
     activeEpisode,
     routeParams: route.params,
     playbackRate,
@@ -360,7 +991,7 @@ const Player = ({route}: Props): React.JSX.Element => {
         exitFullScreen();
       }
 
-      return () => {};
+      return () => { };
     }, [isFullScreen]),
   );
 
@@ -584,14 +1215,14 @@ const Player = ({route}: Props): React.JSX.Element => {
   useEffect(() => {
     // Loading animations
     if (streamLoading) {
-      loadingOpacity.value = withTiming(1, {duration: 800});
-      loadingScale.value = withTiming(1, {duration: 800});
+      loadingOpacity.value = withTiming(1, { duration: 800 });
+      loadingScale.value = withTiming(1, { duration: 800 });
       loadingRotation.value = withRepeat(
         withSequence(
-          withDelay(500, withTiming(180, {duration: 900})),
-          withTiming(180, {duration: 600}),
-          withTiming(360, {duration: 900}),
-          withTiming(360, {duration: 600}),
+          withDelay(500, withTiming(180, { duration: 900 })),
+          withTiming(180, { duration: 600 }),
+          withTiming(360, { duration: 900 }),
+          withTiming(360, { duration: 600 }),
         ),
         -1,
       );
@@ -612,20 +1243,20 @@ const Player = ({route}: Props): React.JSX.Element => {
 
   useEffect(() => {
     // 2x speed text visibility
-    textVisibility.value = withTiming(isTextVisible ? 1 : 0, {duration: 250});
+    textVisibility.value = withTiming(isTextVisible ? 1 : 0, { duration: 250 });
 
     // Speed icon blinking animation
     if (isTextVisible) {
       speedIconOpacity.value = withRepeat(
         withSequence(
-          withTiming(1, {duration: 250}),
-          withTiming(0, {duration: 150}),
-          withTiming(1, {duration: 150}),
+          withTiming(1, { duration: 250 }),
+          withTiming(0, { duration: 150 }),
+          withTiming(1, { duration: 150 }),
         ),
         -1,
       );
     } else {
-      speedIconOpacity.value = withTiming(1, {duration: 150});
+      speedIconOpacity.value = withTiming(1, { duration: 150 });
     }
   }, [isTextVisible]);
 
@@ -641,7 +1272,7 @@ const Player = ({route}: Props): React.JSX.Element => {
 
   useEffect(() => {
     // Toast visibility
-    toastOpacity.value = withTiming(showToast ? 1 : 0, {duration: 250});
+    toastOpacity.value = withTiming(showToast ? 1 : 0, { duration: 250 });
   }, [showToast]);
 
   useEffect(() => {
@@ -673,9 +1304,9 @@ const Player = ({route}: Props): React.JSX.Element => {
       source: {
         textTracks: externalSubs,
         uri: selectedStream?.link || '',
-        bufferConfig: {backBufferDurationMs: 30000},
+        bufferConfig: { backBufferDurationMs: 30000 },
         shouldCache: true,
-        ...(selectedStream?.type === 'm3u8' && {type: 'm3u8'}),
+        ...(selectedStream?.type === 'm3u8' && { type: 'm3u8' }),
         headers: selectedStream?.headers,
         metadata: {
           title: route.params?.primaryTitle,
@@ -685,11 +1316,25 @@ const Player = ({route}: Props): React.JSX.Element => {
           imageUri: route.params?.poster?.poster,
         },
       },
-      onProgress: handleProgress,
+      onProgress: (data: any) => {
+        handleProgress(data);
+        // Send updates if leader
+        if (watchTogetherMode && isSessionLeader && data) {
+          // Throttle updates to every 2 sec performed in hook or here?
+          // The hook has 'sendTimeUpdate'. We should call it.
+          // We'll call it every second roughly via this callback
+          const currentTime = data.currentTime;
+          // Determine isPlaying based on playbackRate > 0 or internal state
+          // We don't have direct 'isPlaying' from onProgressData usually, need to track it.
+          // Used 'isPlaying' state.
+          sendTimeUpdate(currentTime, isPlaying);
+        }
+      },
       onLoad: () => {
         playerRef?.current?.seek(watchedDuration);
         playerRef?.current?.resume();
         setPlaybackRate(1.0);
+        setIsPlaying(true);
       },
       videoRef: playerRef as React.RefObject<VideoRef>,
       rate: playbackRate,
@@ -742,7 +1387,7 @@ const Player = ({route}: Props): React.JSX.Element => {
       onTextTracks: (e: any) => setTextTracks(e.textTracks),
       onVideoTracks: (e: any) => processVideoTracks(e.videoTracks),
       selectedVideoTrack,
-      style: {flex: 1, zIndex: 100},
+      style: { flex: 1, zIndex: 100 },
       controlAnimationTiming: 357,
       controlTimeoutDelay: isTV ? 8000 : 10000,
       hideAllControlls: isPlayerLocked || isTV,
@@ -778,7 +1423,7 @@ const Player = ({route}: Props): React.JSX.Element => {
   if (streamLoading) {
     return (
       <SafeAreaView
-        edges={{right: 'off', top: 'off', left: 'off', bottom: 'off'}}
+        edges={{ right: 'off', top: 'off', left: 'off', bottom: 'off' }}
         className="bg-black flex-1 justify-center items-center">
         <StatusBar translucent={true} hidden={true} />
         <OrientationLocker orientation={LANDSCAPE} />
@@ -934,17 +1579,17 @@ const Player = ({route}: Props): React.JSX.Element => {
             hasTVPreferredFocus={isTV}
             isTVSelectable={true}
             style={[
-              {flexDirection: 'row', gap: 4, alignItems: 'center'},
+              { flexDirection: 'row', gap: 4, alignItems: 'center' },
               isTV &&
-                tvFocusedControl === 'audio' && {
-                  borderWidth: 2,
-                  borderColor: primary,
-                  borderRadius: 8,
-                  padding: 4,
-                },
+              tvFocusedControl === 'audio' && {
+                borderWidth: 2,
+                borderColor: primary,
+                borderRadius: 8,
+                padding: 4,
+              },
             ]}>
             <MaterialIcons
-              style={{opacity: tvFocusedControl === 'audio' ? 1 : 0.7}}
+              style={{ opacity: tvFocusedControl === 'audio' ? 1 : 0.7 }}
               name={'multitrack-audio'}
               size={isTV ? 32 : 26}
               color={tvFocusedControl === 'audio' ? primary : 'white'}
@@ -970,17 +1615,17 @@ const Player = ({route}: Props): React.JSX.Element => {
             onBlur={() => isTV && setTVFocusedControl(null)}
             isTVSelectable={true}
             style={[
-              {flexDirection: 'row', gap: 4, alignItems: 'center'},
+              { flexDirection: 'row', gap: 4, alignItems: 'center' },
               isTV &&
-                tvFocusedControl === 'subtitle' && {
-                  borderWidth: 2,
-                  borderColor: primary,
-                  borderRadius: 8,
-                  padding: 4,
-                },
+              tvFocusedControl === 'subtitle' && {
+                borderWidth: 2,
+                borderColor: primary,
+                borderRadius: 8,
+                padding: 4,
+              },
             ]}>
             <MaterialIcons
-              style={{opacity: tvFocusedControl === 'subtitle' ? 1 : 0.6}}
+              style={{ opacity: tvFocusedControl === 'subtitle' ? 1 : 0.6 }}
               name={'subtitles'}
               size={isTV ? 30 : 24}
               color={tvFocusedControl === 'subtitle' ? primary : 'white'}
@@ -1008,20 +1653,20 @@ const Player = ({route}: Props): React.JSX.Element => {
             onBlur={() => isTV && setTVFocusedControl(null)}
             isTVSelectable={true}
             style={[
-              {flexDirection: 'row', gap: 4, alignItems: 'center'},
+              { flexDirection: 'row', gap: 4, alignItems: 'center' },
               isTV &&
-                tvFocusedControl === 'speed' && {
-                  borderWidth: 2,
-                  borderColor: primary,
-                  borderRadius: 8,
-                  padding: 4,
-                },
+              tvFocusedControl === 'speed' && {
+                borderWidth: 2,
+                borderColor: primary,
+                borderRadius: 8,
+                padding: 4,
+              },
             ]}>
             <MaterialIcons
               name="speed"
               size={isTV ? 32 : 26}
               color={tvFocusedControl === 'speed' ? primary : 'white'}
-              style={{opacity: tvFocusedControl === 'speed' ? 1 : 0.6}}
+              style={{ opacity: tvFocusedControl === 'speed' ? 1 : 0.6 }}
             />
             <Text
               style={{
@@ -1059,20 +1704,20 @@ const Player = ({route}: Props): React.JSX.Element => {
             onBlur={() => isTV && setTVFocusedControl(null)}
             isTVSelectable={true}
             style={[
-              {flexDirection: 'row', gap: 4, alignItems: 'center'},
+              { flexDirection: 'row', gap: 4, alignItems: 'center' },
               isTV &&
-                tvFocusedControl === 'server' && {
-                  borderWidth: 2,
-                  borderColor: primary,
-                  borderRadius: 8,
-                  padding: 4,
-                },
+              tvFocusedControl === 'server' && {
+                borderWidth: 2,
+                borderColor: primary,
+                borderRadius: 8,
+                padding: 4,
+              },
             ]}>
             <MaterialIcons
               name="video-settings"
               size={isTV ? 30 : 25}
               color={tvFocusedControl === 'server' ? primary : 'white'}
-              style={{opacity: tvFocusedControl === 'server' ? 1 : 0.6}}
+              style={{ opacity: tvFocusedControl === 'server' ? 1 : 0.6 }}
             />
             <Text
               className="capitalize"
@@ -1084,9 +1729,9 @@ const Player = ({route}: Props): React.JSX.Element => {
               {videoTracks?.length === 1
                 ? formatQuality(videoTracks[0]?.height?.toString() || 'auto')
                 : formatQuality(
-                    videoTracks?.[selectedQualityIndex]?.height?.toString() ||
-                      'auto',
-                  )}
+                  videoTracks?.[selectedQualityIndex]?.height?.toString() ||
+                  'auto',
+                )}
             </Text>
           </Pressable>
 
@@ -1097,20 +1742,20 @@ const Player = ({route}: Props): React.JSX.Element => {
             onBlur={() => isTV && setTVFocusedControl(null)}
             isTVSelectable={true}
             style={[
-              {flexDirection: 'row', gap: 4, alignItems: 'center'},
+              { flexDirection: 'row', gap: 4, alignItems: 'center' },
               isTV &&
-                tvFocusedControl === 'resize' && {
-                  borderWidth: 2,
-                  borderColor: primary,
-                  borderRadius: 8,
-                  padding: 4,
-                },
+              tvFocusedControl === 'resize' && {
+                borderWidth: 2,
+                borderColor: primary,
+                borderRadius: 8,
+                padding: 4,
+              },
             ]}>
             <MaterialIcons
               name="fit-screen"
               size={isTV ? 34 : 28}
               color={tvFocusedControl === 'resize' ? primary : 'white'}
-              style={{opacity: tvFocusedControl === 'resize' ? 1 : 0.6}}
+              style={{ opacity: tvFocusedControl === 'resize' ? 1 : 0.6 }}
             />
             <Text
               style={{
@@ -1134,22 +1779,22 @@ const Player = ({route}: Props): React.JSX.Element => {
             route.params?.episodeList?.length - 1 &&
             (isTV ||
               videoPositionRef.current.position /
-                videoPositionRef.current.duration >
-                0.8) && (
+              videoPositionRef.current.duration >
+              0.8) && (
               <Pressable
                 onPress={handleNextEpisode}
                 onFocus={() => isTV && setTVFocusedControl('next')}
                 onBlur={() => isTV && setTVFocusedControl(null)}
                 isTVSelectable={true}
                 style={[
-                  {flexDirection: 'row', alignItems: 'center'},
+                  { flexDirection: 'row', alignItems: 'center' },
                   isTV &&
-                    tvFocusedControl === 'next' && {
-                      borderWidth: 2,
-                      borderColor: primary,
-                      borderRadius: 8,
-                      padding: 4,
-                    },
+                  tvFocusedControl === 'next' && {
+                    borderWidth: 2,
+                    borderColor: primary,
+                    borderRadius: 8,
+                    padding: 4,
+                  },
                 ]}>
                 <Text
                   style={{
@@ -1163,7 +1808,7 @@ const Player = ({route}: Props): React.JSX.Element => {
                   name="skip-next"
                   size={isTV ? 34 : 28}
                   color={tvFocusedControl === 'next' ? primary : 'white'}
-                  style={{opacity: tvFocusedControl === 'next' ? 1 : 0.6}}
+                  style={{ opacity: tvFocusedControl === 'next' ? 1 : 0.6 }}
                 />
               </Pressable>
             )}
@@ -1216,12 +1861,12 @@ const Player = ({route}: Props): React.JSX.Element => {
                     onBlur={() => isTV && setTVFocusedModalItem(null)}
                     style={[
                       isTV &&
-                        tvFocusedModalItem === `audio-${i}` && {
-                          backgroundColor: 'rgba(255,255,255,0.2)',
-                          borderWidth: 2,
-                          borderColor: primary,
-                          padding: 8,
-                        },
+                      tvFocusedModalItem === `audio-${i}` && {
+                        backgroundColor: 'rgba(255,255,255,0.2)',
+                        borderWidth: 2,
+                        borderColor: primary,
+                        padding: 8,
+                      },
                     ]}
                     onPress={() => {
                       setSelectedAudioTrack({
@@ -1288,12 +1933,12 @@ const Player = ({route}: Props): React.JSX.Element => {
                       onBlur={() => isTV && setTVFocusedModalItem(null)}
                       style={[
                         isTV &&
-                          tvFocusedModalItem === 'sub-disabled' && {
-                            backgroundColor: 'rgba(255,255,255,0.2)',
-                            borderWidth: 2,
-                            borderColor: primary,
-                            padding: 8,
-                          },
+                        tvFocusedModalItem === 'sub-disabled' && {
+                          backgroundColor: 'rgba(255,255,255,0.2)',
+                          borderWidth: 2,
+                          borderColor: primary,
+                          padding: 8,
+                        },
                       ]}
                       onPress={() => {
                         setSelectedTextTrack({
@@ -1323,12 +1968,12 @@ const Player = ({route}: Props): React.JSX.Element => {
                       onBlur={() => isTV && setTVFocusedModalItem(null)}
                       style={[
                         isTV &&
-                          tvFocusedModalItem === 'sub-add' && {
-                            backgroundColor: 'rgba(255,255,255,0.2)',
-                            borderWidth: 2,
-                            borderColor: primary,
-                            padding: 8,
-                          },
+                        tvFocusedModalItem === 'sub-add' && {
+                          backgroundColor: 'rgba(255,255,255,0.2)',
+                          borderWidth: 2,
+                          borderColor: primary,
+                          padding: 8,
+                        },
                       ]}
                       onPress={async () => {
                         try {
@@ -1371,7 +2016,7 @@ const Player = ({route}: Props): React.JSX.Element => {
                     />
                   </>
                 }
-                renderItem={({item: track}) => (
+                renderItem={({ item: track }) => (
                   <Pressable
                     className="flex-row gap-3 items-center rounded-md my-1 overflow-hidden ml-2"
                     isTVSelectable={true}
@@ -1381,12 +2026,12 @@ const Player = ({route}: Props): React.JSX.Element => {
                     onBlur={() => isTV && setTVFocusedModalItem(null)}
                     style={[
                       isTV &&
-                        tvFocusedModalItem === `sub-${track.index}` && {
-                          backgroundColor: 'rgba(255,255,255,0.2)',
-                          borderWidth: 2,
-                          borderColor: primary,
-                          padding: 8,
-                        },
+                      tvFocusedModalItem === `sub-${track.index}` && {
+                        backgroundColor: 'rgba(255,255,255,0.2)',
+                        borderWidth: 2,
+                        borderColor: primary,
+                        padding: 8,
+                      },
                     ]}
                     onPress={() => {
                       setSelectedTextTrack({
@@ -1458,13 +2103,13 @@ const Player = ({route}: Props): React.JSX.Element => {
                         onBlur={() => isTV && setTVFocusedModalItem(null)}
                         style={[
                           isTV &&
-                            tvFocusedModalItem === `server-${i}` && {
-                              backgroundColor: 'rgba(255,255,255,0.2)',
-                              borderWidth: 2,
+                          tvFocusedModalItem === `server-${i}` && {
+                            backgroundColor: 'rgba(255,255,255,0.2)',
+                            borderWidth: 2,
 
-                              borderColor: primary,
-                              padding: 8,
-                            },
+                            borderColor: primary,
+                            padding: 8,
+                          },
                         ]}
                         onPress={() => {
                           setSelectedStream(track);
@@ -1501,12 +2146,12 @@ const Player = ({route}: Props): React.JSX.Element => {
                         onBlur={() => isTV && setTVFocusedModalItem(null)}
                         style={[
                           isTV &&
-                            tvFocusedModalItem === `quality-${i}` && {
-                              backgroundColor: 'rgba(255,255,255,0.2)',
-                              borderWidth: 2,
-                              borderColor: primary,
-                              padding: 8,
-                            },
+                          tvFocusedModalItem === `quality-${i}` && {
+                            backgroundColor: 'rgba(255,255,255,0.2)',
+                            borderWidth: 2,
+                            borderColor: primary,
+                            padding: 8,
+                          },
                         ]}
                         onPress={() => {
                           setSelectedVideoTrack({
@@ -1559,12 +2204,12 @@ const Player = ({route}: Props): React.JSX.Element => {
                     onBlur={() => isTV && setTVFocusedModalItem(null)}
                     style={[
                       isTV &&
-                        tvFocusedModalItem === `speed-${i}` && {
-                          backgroundColor: 'rgba(255,255,255,0.2)',
-                          borderWidth: 2,
-                          borderColor: primary,
-                          padding: 8,
-                        },
+                      tvFocusedModalItem === `speed-${i}` && {
+                        backgroundColor: 'rgba(255,255,255,0.2)',
+                        borderWidth: 2,
+                        borderColor: primary,
+                        padding: 8,
+                      },
                     ]}
                     onPress={() => {
                       setPlaybackRate(rate);

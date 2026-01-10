@@ -180,558 +180,560 @@ const TVFocusableQualityButton = ({
       <Text className="text-white text-sm">{quality}</Text>
     </TouchableOpacity>
   );
-  const TVFocusableThemeButton = ({
-    item,
-    isSelected,
-    onPress,
-  }: {
-    item: { name: string; color: string };
-    isSelected: boolean;
-    onPress: () => void;
-  }) => {
-    const scale = useSharedValue(1);
-    const borderWidth = useSharedValue(0);
+};
 
-    const animatedStyle = useAnimatedStyle(() => ({
-      transform: [{ scale: scale.value }],
-      borderWidth: borderWidth.value,
-      borderColor: 'white',
-    }));
+const TVFocusableThemeButton = ({
+  item,
+  isSelected,
+  onPress,
+}: {
+  item: { name: string; color: string };
+  isSelected: boolean;
+  onPress: () => void;
+}) => {
+  const scale = useSharedValue(1);
+  const borderWidth = useSharedValue(0);
 
-    if (isTV) {
-      return (
-        <Pressable
-          onPress={onPress}
-          onFocus={() => {
-            scale.value = withTiming(1.2, { duration: 150 });
-            borderWidth.value = withTiming(2, { duration: 150 });
-          }}
-          onBlur={() => {
-            scale.value = withTiming(1, { duration: 150 });
-            borderWidth.value = withTiming(0, { duration: 150 });
-          }}
-          isTVSelectable={true}
-          style={{ marginRight: 12, marginBottom: 12 }}>
-          <Animated.View
-            style={[
-              animatedStyle,
-              {
-                width: 40,
-                height: 40,
-                borderRadius: 20,
-                backgroundColor: item.color,
-                alignItems: 'center',
-                justifyContent: 'center',
-              },
-            ]}>
-            {isSelected && (
-              <MaterialCommunityIcons name="check" size={20} color="white" />
-            )}
-          </Animated.View>
-          <Text style={{ color: 'gray', fontSize: 10, textAlign: 'center', marginTop: 4 }}>{item.name}</Text>
-        </Pressable>
-      );
-    }
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: scale.value }],
+    borderWidth: borderWidth.value,
+    borderColor: 'white',
+  }));
 
+  if (isTV) {
     return (
-      <TouchableOpacity
+      <Pressable
         onPress={onPress}
-        style={{
-          width: 40,
-          height: 40,
-          borderRadius: 20,
-          backgroundColor: item.color,
-          marginRight: 10,
-          alignItems: 'center',
-          justifyContent: 'center',
-          borderWidth: isSelected ? 2 : 0,
-          borderColor: 'white',
-        }}>
-        {isSelected && (
-          <MaterialCommunityIcons name="check" size={16} color="white" />
-        )}
-      </TouchableOpacity>
+        onFocus={() => {
+          scale.value = withTiming(1.2, { duration: 150 });
+          borderWidth.value = withTiming(2, { duration: 150 });
+        }}
+        onBlur={() => {
+          scale.value = withTiming(1, { duration: 150 });
+          borderWidth.value = withTiming(0, { duration: 150 });
+        }}
+        isTVSelectable={true}
+        style={{ marginRight: 12, marginBottom: 12 }}>
+        <Animated.View
+          style={[
+            animatedStyle,
+            {
+              width: 40,
+              height: 40,
+              borderRadius: 20,
+              backgroundColor: item.color,
+              alignItems: 'center',
+              justifyContent: 'center',
+            },
+          ]}>
+          {isSelected && (
+            <MaterialCommunityIcons name="check" size={20} color="white" />
+          )}
+        </Animated.View>
+        <Text style={{ color: 'gray', fontSize: 10, textAlign: 'center', marginTop: 4 }}>{item.name}</Text>
+      </Pressable>
     );
-  };
+  }
 
-  const Preferences = () => {
-    const hasFirebase = Boolean(Constants?.expoConfig?.extra?.hasFirebase);
-    const { primary, setPrimary, isCustom, setCustom } = useThemeStore(
-      state => state,
-    );
-    const [showRecentlyWatched, setShowRecentlyWatched] = useState(
-      settingsStorage.getBool('showRecentlyWatched') || false,
-    );
-    const [disableDrawer, setDisableDrawer] = useState(
-      settingsStorage.getBool('disableDrawer') || false,
-    );
+  return (
+    <TouchableOpacity
+      onPress={onPress}
+      style={{
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        backgroundColor: item.color,
+        marginRight: 10,
+        alignItems: 'center',
+        justifyContent: 'center',
+        borderWidth: isSelected ? 2 : 0,
+        borderColor: 'white',
+      }}>
+      {isSelected && (
+        <MaterialCommunityIcons name="check" size={16} color="white" />
+      )}
+    </TouchableOpacity>
+  );
+};
 
-    const [ExcludedQualities, setExcludedQualities] = useState(
-      settingsStorage.getExcludedQualities(),
-    );
+const Preferences = () => {
+  const hasFirebase = Boolean(Constants?.expoConfig?.extra?.hasFirebase);
+  const { primary, setPrimary, isCustom, setCustom } = useThemeStore(
+    state => state,
+  );
+  const [showRecentlyWatched, setShowRecentlyWatched] = useState(
+    settingsStorage.getBool('showRecentlyWatched') || false,
+  );
+  const [disableDrawer, setDisableDrawer] = useState(
+    settingsStorage.getBool('disableDrawer') || false,
+  );
 
-    const [customColor, setCustomColor] = useState(
-      settingsStorage.getCustomColor(),
-    );
+  const [ExcludedQualities, setExcludedQualities] = useState(
+    settingsStorage.getExcludedQualities(),
+  );
 
-    const [showMediaControls, setShowMediaControls] = useState<boolean>(
-      settingsStorage.showMediaControls(),
-    );
+  const [customColor, setCustomColor] = useState(
+    settingsStorage.getCustomColor(),
+  );
 
-    const [showHamburgerMenu, setShowHamburgerMenu] = useState<boolean>(
-      settingsStorage.showHamburgerMenu(),
-    );
+  const [showMediaControls, setShowMediaControls] = useState<boolean>(
+    settingsStorage.showMediaControls(),
+  );
 
-    const [hideSeekButtons, setHideSeekButtons] = useState<boolean>(
-      settingsStorage.hideSeekButtons(),
-    );
+  const [showHamburgerMenu, setShowHamburgerMenu] = useState<boolean>(
+    settingsStorage.showHamburgerMenu(),
+  );
 
-    const [_enable2xGesture, _setEnable2xGesture] = useState<boolean>(
-      settingsStorage.isEnable2xGestureEnabled(),
-    );
+  const [hideSeekButtons, setHideSeekButtons] = useState<boolean>(
+    settingsStorage.hideSeekButtons(),
+  );
 
-    const [enableSwipeGesture, setEnableSwipeGesture] = useState<boolean>(
-      settingsStorage.isSwipeGestureEnabled(),
-    );
+  const [_enable2xGesture, _setEnable2xGesture] = useState<boolean>(
+    settingsStorage.isEnable2xGestureEnabled(),
+  );
 
-    const [showTabBarLables, setShowTabBarLables] = useState<boolean>(
-      settingsStorage.showTabBarLabels(),
-    );
+  const [enableSwipeGesture, setEnableSwipeGesture] = useState<boolean>(
+    settingsStorage.isSwipeGestureEnabled(),
+  );
 
-    const [OpenExternalPlayer, setOpenExternalPlayer] = useState(
-      settingsStorage.getBool('useExternalPlayer', false),
-    );
+  const [showTabBarLables, setShowTabBarLables] = useState<boolean>(
+    settingsStorage.showTabBarLabels(),
+  );
 
-    const [userAgent, setUserAgent] = useState(settingsStorage.getUserAgent());
-    const [dnsUrl, setDnsUrl] = useState(settingsStorage.getDnsUrl());
+  const [OpenExternalPlayer, setOpenExternalPlayer] = useState(
+    settingsStorage.getBool('useExternalPlayer', false),
+  );
 
-    const [hapticFeedback, setHapticFeedback] = useState(
-      settingsStorage.isHapticFeedbackEnabled(),
-    );
+  const [userAgent, setUserAgent] = useState(settingsStorage.getUserAgent());
+  const [dnsUrl, setDnsUrl] = useState(settingsStorage.getDnsUrl());
 
-    const [alwaysUseExternalDownload, setAlwaysUseExternalDownload] = useState(
-      settingsStorage.getBool('alwaysExternalDownloader') || false,
-    );
+  const [hapticFeedback, setHapticFeedback] = useState(
+    settingsStorage.isHapticFeedbackEnabled(),
+  );
 
-    const [telemetryOptIn, setTelemetryOptIn] = useState<boolean>(
-      settingsStorage.isTelemetryOptIn(),
-    );
+  const [alwaysUseExternalDownload, setAlwaysUseExternalDownload] = useState(
+    settingsStorage.getBool('alwaysExternalDownloader') || false,
+  );
 
-    const handleTelemetryChange = useCallback(async () => {
-      const next = !telemetryOptIn;
-      setTelemetryOptIn(next);
-      settingsStorage.setTelemetryOptIn(next);
-      if (hasFirebase) {
-        try {
-          const crashlytics = getCrashlytics();
-          crashlytics &&
-            (await crashlytics().setCrashlyticsCollectionEnabled(next));
-        } catch { }
-        try {
-          const analytics = getAnalytics();
-          analytics && (await analytics().setAnalyticsCollectionEnabled(next));
-          analytics &&
-            (await analytics().setConsent({
-              analytics_storage: next,
-              ad_storage: next,
-              ad_user_data: next,
-              ad_personalization: next,
-            }));
-        } catch { }
-      }
-    }, [telemetryOptIn, hasFirebase]);
+  const [telemetryOptIn, setTelemetryOptIn] = useState<boolean>(
+    settingsStorage.isTelemetryOptIn(),
+  );
 
-    return (
-      <ScrollView
-        className="w-full h-full bg-black"
-        contentContainerStyle={{
-          paddingTop: StatusBar.currentHeight || 0,
-          paddingBottom: isTV ? 50 : 0,
-        }}>
-        <View className="p-5">
-          <Text
-            style={{
-              fontSize: isTV ? 28 : 24,
-              fontWeight: 'bold',
-              color: 'white',
-              marginBottom: 24,
-            }}>
-            Preferences
-          </Text>
+  const handleTelemetryChange = useCallback(async () => {
+    const next = !telemetryOptIn;
+    setTelemetryOptIn(next);
+    settingsStorage.setTelemetryOptIn(next);
+    if (hasFirebase) {
+      try {
+        const crashlytics = getCrashlytics();
+        crashlytics &&
+          (await crashlytics().setCrashlyticsCollectionEnabled(next));
+      } catch { }
+      try {
+        const analytics = getAnalytics();
+        analytics && (await analytics().setAnalyticsCollectionEnabled(next));
+        analytics &&
+          (await analytics().setConsent({
+            analytics_storage: next,
+            ad_storage: next,
+            ad_user_data: next,
+            ad_personalization: next,
+          }));
+      } catch { }
+    }
+  }, [telemetryOptIn, hasFirebase]);
 
-          {/* Theme Section */}
-          <View className="mb-6">
-            <Text className="text-gray-400 text-sm mb-3">Appearance</Text>
-            <View className="bg-[#1A1A1A] rounded-xl overflow-hidden">
-              {/* Theme Selector - TV & Mobile */}
-              <View className="px-4 py-4 border-b border-[#262626]">
-                <Text className="text-white text-base mb-3">Theme</Text>
+  return (
+    <ScrollView
+      className="w-full h-full bg-black"
+      contentContainerStyle={{
+        paddingTop: StatusBar.currentHeight || 0,
+        paddingBottom: isTV ? 50 : 0,
+      }}>
+      <View className="p-5">
+        <Text
+          style={{
+            fontSize: isTV ? 28 : 24,
+            fontWeight: 'bold',
+            color: 'white',
+            marginBottom: 24,
+          }}>
+          Preferences
+        </Text>
 
-                {isTV ? (
-                  /* TV: Horizontal List of Circles */
-                  <View style={{ flexDirection: 'row', flexWrap: 'wrap' }}>
-                    {themes.map((theme) => (
-                      <TVFocusableThemeButton
-                        key={theme.name}
-                        item={theme}
-                        isSelected={isCustom ? theme.name === 'Custom' : primary === theme.color}
-                        onPress={() => {
-                          if (theme.name === 'Custom') {
-                            setCustom(true);
-                            setPrimary(customColor);
-                          } else {
-                            setCustom(false);
-                            setPrimary(theme.color);
-                          }
-                        }}
-                      />
-                    ))}
-                  </View>
-                ) : (
-                  /* Mobile: Dropdown (Existing Logic) */
-                  <View className="flex-row items-center justify-between">
-                    <View className="w-full">
-                      {isCustom ? (
-                        <View className="flex-row items-center gap-2">
-                          <TextInput
-                            style={{
-                              color: 'white',
-                              backgroundColor: '#262626',
-                              borderRadius: 8,
-                              paddingHorizontal: 8,
-                              paddingVertical: 4,
-                              fontSize: 14,
-                              flex: 1
-                            }}
-                            placeholder="Hex Color"
-                            placeholderTextColor="gray"
-                            value={customColor}
-                            onChangeText={setCustomColor}
-                            onSubmitEditing={e => {
-                              if (e.nativeEvent.text.length < 7) {
-                                ToastAndroid.show(
-                                  'Invalid Color',
-                                  ToastAndroid.SHORT,
-                                );
-                                return;
-                              }
-                              settingsStorage.setCustomColor(e.nativeEvent.text);
-                              setPrimary(e.nativeEvent.text);
-                            }}
-                          />
-                          <TouchableOpacity
-                            onPress={() => {
-                              setCustom(false);
-                              setPrimary('#FF6347');
-                            }}>
-                            <MaterialCommunityIcons
-                              name="close"
-                              size={20}
-                              color="gray"
-                            />
-                          </TouchableOpacity>
-                        </View>
-                      ) : (
-                        <Dropdown
-                          selectedTextStyle={{
+        {/* Theme Section */}
+        <View className="mb-6">
+          <Text className="text-gray-400 text-sm mb-3">Appearance</Text>
+          <View className="bg-[#1A1A1A] rounded-xl overflow-hidden">
+            {/* Theme Selector - TV & Mobile */}
+            <View className="px-4 py-4 border-b border-[#262626]">
+              <Text className="text-white text-base mb-3">Theme</Text>
+
+              {isTV ? (
+                /* TV: Horizontal List of Circles */
+                <View style={{ flexDirection: 'row', flexWrap: 'wrap' }}>
+                  {themes.map((theme) => (
+                    <TVFocusableThemeButton
+                      key={theme.name}
+                      item={theme}
+                      isSelected={isCustom ? theme.name === 'Custom' : primary === theme.color}
+                      onPress={() => {
+                        if (theme.name === 'Custom') {
+                          setCustom(true);
+                          setPrimary(customColor);
+                        } else {
+                          setCustom(false);
+                          setPrimary(theme.color);
+                        }
+                      }}
+                    />
+                  ))}
+                </View>
+              ) : (
+                /* Mobile: Dropdown (Existing Logic) */
+                <View className="flex-row items-center justify-between">
+                  <View className="w-full">
+                    {isCustom ? (
+                      <View className="flex-row items-center gap-2">
+                        <TextInput
+                          style={{
                             color: 'white',
-                            fontSize: 14,
-                            fontWeight: '500',
-                          }}
-                          containerStyle={{
                             backgroundColor: '#262626',
                             borderRadius: 8,
-                            borderWidth: 0,
-                            marginTop: 4,
+                            paddingHorizontal: 8,
+                            paddingVertical: 4,
+                            fontSize: 14,
+                            flex: 1
                           }}
-                          itemTextStyle={{ color: 'white' }}
-                          activeColor="#3A3A3A"
-                          itemContainerStyle={{
-                            backgroundColor: '#262626',
-                            borderWidth: 0,
-                          }}
-                          style={{
-                            backgroundColor: '#262626',
-                            borderWidth: 0,
-                          }}
-                          iconStyle={{ tintColor: 'white' }}
-                          placeholderStyle={{ color: 'white' }}
-                          labelField="name"
-                          valueField="color"
-                          data={themes}
-                          value={primary}
-                          onChange={value => {
-                            if (value.name === 'Custom') {
-                              setCustom(true);
-                              setPrimary(customColor);
+                          placeholder="Hex Color"
+                          placeholderTextColor="gray"
+                          value={customColor}
+                          onChangeText={setCustomColor}
+                          onSubmitEditing={e => {
+                            if (e.nativeEvent.text.length < 7) {
+                              ToastAndroid.show(
+                                'Invalid Color',
+                                ToastAndroid.SHORT,
+                              );
                               return;
                             }
-                            setPrimary(value.color);
+                            settingsStorage.setCustomColor(e.nativeEvent.text);
+                            setPrimary(e.nativeEvent.text);
                           }}
                         />
-                      )}
-                    </View>
+                        <TouchableOpacity
+                          onPress={() => {
+                            setCustom(false);
+                            setPrimary('#FF6347');
+                          }}>
+                          <MaterialCommunityIcons
+                            name="close"
+                            size={20}
+                            color="gray"
+                          />
+                        </TouchableOpacity>
+                      </View>
+                    ) : (
+                      <Dropdown
+                        selectedTextStyle={{
+                          color: 'white',
+                          fontSize: 14,
+                          fontWeight: '500',
+                        }}
+                        containerStyle={{
+                          backgroundColor: '#262626',
+                          borderRadius: 8,
+                          borderWidth: 0,
+                          marginTop: 4,
+                        }}
+                        itemTextStyle={{ color: 'white' }}
+                        activeColor="#3A3A3A"
+                        itemContainerStyle={{
+                          backgroundColor: '#262626',
+                          borderWidth: 0,
+                        }}
+                        style={{
+                          backgroundColor: '#262626',
+                          borderWidth: 0,
+                        }}
+                        iconStyle={{ tintColor: 'white' }}
+                        placeholderStyle={{ color: 'white' }}
+                        labelField="name"
+                        valueField="color"
+                        data={themes}
+                        value={primary}
+                        onChange={value => {
+                          if (value.name === 'Custom') {
+                            setCustom(true);
+                            setPrimary(customColor);
+                            return;
+                          }
+                          setPrimary(value.color);
+                        }}
+                      />
+                    )}
                   </View>
-                )}
-
-                {/* Custom Input for TV (if selected) */}
-                {isTV && isCustom && (
-                  <TextInput
-                    style={{
-                      color: 'white',
-                      backgroundColor: '#333333',
-                      borderRadius: 8,
-                      padding: 12,
-                      marginTop: 12
-                    }}
-                    placeholder="Enter Hex Color (e.g., #FF0000)"
-                    placeholderTextColor="gray"
-                    value={customColor}
-                    onChangeText={(text) => {
-                      setCustomColor(text);
-                      if (text.length === 7) {
-                        settingsStorage.setCustomColor(text);
-                        setPrimary(text);
-                      }
-                    }}
-                  />
-                )}
-              </View>
-
-              {/* Haptic Feedback */}
-              <TVFocusableSwitchRow
-                label="Haptic Feedback"
-                value={hapticFeedback}
-                onValueChange={() => {
-                  settingsStorage.setHapticFeedbackEnabled(!hapticFeedback);
-                  setHapticFeedback(!hapticFeedback);
-                }}
-                primary={primary}
-                isFirst={isTV}
-              />
-
-              {/* Analytics & Crashlytics Opt-In */}
-              <TVFocusableSwitchRow
-                label="Usage & Crash Reports"
-                value={telemetryOptIn}
-                onValueChange={handleTelemetryChange}
-                primary={primary}
-              />
-
-              {/* Show Tab Bar Labels */}
-              <TVFocusableSwitchRow
-                label="Show Tab Bar Labels"
-                value={showTabBarLables}
-                onValueChange={() => {
-                  settingsStorage.setShowTabBarLabels(!showTabBarLables);
-                  setShowTabBarLables(!showTabBarLables);
-                  ToastAndroid.show(
-                    'Restart App to Apply Changes',
-                    ToastAndroid.SHORT,
-                  );
-                }}
-                primary={primary}
-              />
-
-              {/* Show Hamburger Menu */}
-              {!isTV && (
-                <TVFocusableSwitchRow
-                  label="Show Hamburger Menu"
-                  value={showHamburgerMenu}
-                  onValueChange={() => {
-                    settingsStorage.setShowHamburgerMenu(!showHamburgerMenu);
-                    setShowHamburgerMenu(!showHamburgerMenu);
-                  }}
-                  primary={primary}
-                />
+                </View>
               )}
 
-              {/* Show Recently Watched */}
+              {/* Custom Input for TV (if selected) */}
+              {isTV && isCustom && (
+                <TextInput
+                  style={{
+                    color: 'white',
+                    backgroundColor: '#333333',
+                    borderRadius: 8,
+                    padding: 12,
+                    marginTop: 12
+                  }}
+                  placeholder="Enter Hex Color (e.g., #FF0000)"
+                  placeholderTextColor="gray"
+                  value={customColor}
+                  onChangeText={(text) => {
+                    setCustomColor(text);
+                    if (text.length === 7) {
+                      settingsStorage.setCustomColor(text);
+                      setPrimary(text);
+                    }
+                  }}
+                />
+              )}
+            </View>
+
+            {/* Haptic Feedback */}
+            <TVFocusableSwitchRow
+              label="Haptic Feedback"
+              value={hapticFeedback}
+              onValueChange={() => {
+                settingsStorage.setHapticFeedbackEnabled(!hapticFeedback);
+                setHapticFeedback(!hapticFeedback);
+              }}
+              primary={primary}
+              isFirst={isTV}
+            />
+
+            {/* Analytics & Crashlytics Opt-In */}
+            <TVFocusableSwitchRow
+              label="Usage & Crash Reports"
+              value={telemetryOptIn}
+              onValueChange={handleTelemetryChange}
+              primary={primary}
+            />
+
+            {/* Show Tab Bar Labels */}
+            <TVFocusableSwitchRow
+              label="Show Tab Bar Labels"
+              value={showTabBarLables}
+              onValueChange={() => {
+                settingsStorage.setShowTabBarLabels(!showTabBarLables);
+                setShowTabBarLables(!showTabBarLables);
+                ToastAndroid.show(
+                  'Restart App to Apply Changes',
+                  ToastAndroid.SHORT,
+                );
+              }}
+              primary={primary}
+            />
+
+            {/* Show Hamburger Menu */}
+            {!isTV && (
               <TVFocusableSwitchRow
-                label="Show Recently Watched"
-                value={showRecentlyWatched}
+                label="Show Hamburger Menu"
+                value={showHamburgerMenu}
                 onValueChange={() => {
-                  settingsStorage.setBool(
-                    'showRecentlyWatched',
-                    !showRecentlyWatched,
-                  );
-                  setShowRecentlyWatched(!showRecentlyWatched);
+                  settingsStorage.setShowHamburgerMenu(!showHamburgerMenu);
+                  setShowHamburgerMenu(!showHamburgerMenu);
                 }}
                 primary={primary}
               />
+            )}
 
-              {/* Disable Drawer */}
-              {!isTV && (
-                <TVFocusableSwitchRow
-                  label="Disable Drawer"
-                  value={disableDrawer}
-                  onValueChange={() => {
-                    settingsStorage.setBool('disableDrawer', !disableDrawer);
-                    setDisableDrawer(!disableDrawer);
-                  }}
-                  primary={primary}
-                />
-              )}
+            {/* Show Recently Watched */}
+            <TVFocusableSwitchRow
+              label="Show Recently Watched"
+              value={showRecentlyWatched}
+              onValueChange={() => {
+                settingsStorage.setBool(
+                  'showRecentlyWatched',
+                  !showRecentlyWatched,
+                );
+                setShowRecentlyWatched(!showRecentlyWatched);
+              }}
+              primary={primary}
+            />
 
-              {/* Always Use External Downloader */}
+            {/* Disable Drawer */}
+            {!isTV && (
               <TVFocusableSwitchRow
-                label="Always Use External Downloader"
-                value={alwaysUseExternalDownload}
+                label="Disable Drawer"
+                value={disableDrawer}
                 onValueChange={() => {
-                  settingsStorage.setBool(
-                    'alwaysExternalDownloader',
-                    !alwaysUseExternalDownload,
-                  );
-                  setAlwaysUseExternalDownload(!alwaysUseExternalDownload);
+                  settingsStorage.setBool('disableDrawer', !disableDrawer);
+                  setDisableDrawer(!disableDrawer);
+                }}
+                primary={primary}
+              />
+            )}
+
+            {/* Always Use External Downloader */}
+            <TVFocusableSwitchRow
+              label="Always Use External Downloader"
+              value={alwaysUseExternalDownload}
+              onValueChange={() => {
+                settingsStorage.setBool(
+                  'alwaysExternalDownloader',
+                  !alwaysUseExternalDownload,
+                );
+                setAlwaysUseExternalDownload(!alwaysUseExternalDownload);
+              }}
+              primary={primary}
+              hasBorder={false}
+            />
+          </View>
+        </View>
+
+        {/* Player Settings */}
+        <View className="mb-6">
+          <Text className="text-gray-400 text-sm mb-3">Player</Text>
+          <View className="bg-[#1A1A1A] rounded-xl overflow-hidden">
+            {/* External Player */}
+            <TVFocusableSwitchRow
+              label="Always Use External Player"
+              value={OpenExternalPlayer}
+              onValueChange={() => {
+                settingsStorage.setBool(
+                  'useExternalPlayer',
+                  !OpenExternalPlayer,
+                );
+                setOpenExternalPlayer(!OpenExternalPlayer);
+              }}
+              primary={primary}
+            />
+
+            {/* Media Controls */}
+            <TVFocusableSwitchRow
+              label="Media Controls"
+              value={showMediaControls}
+              onValueChange={() => {
+                settingsStorage.setShowMediaControls(!showMediaControls);
+                setShowMediaControls(!showMediaControls);
+              }}
+              primary={primary}
+            />
+
+            {/* Hide Seek Buttons */}
+            <TVFocusableSwitchRow
+              label="Hide Seek Buttons"
+              value={hideSeekButtons}
+              onValueChange={() => {
+                settingsStorage.setHideSeekButtons(!hideSeekButtons);
+                setHideSeekButtons(!hideSeekButtons);
+              }}
+              primary={primary}
+            />
+
+            {/* Swipe Gestures */}
+            {!isTV && (
+              <TVFocusableSwitchRow
+                label="Enable Swipe Gestures"
+                value={enableSwipeGesture}
+                onValueChange={() => {
+                  settingsStorage.setSwipeGestureEnabled(!enableSwipeGesture);
+                  setEnableSwipeGesture(!enableSwipeGesture);
                 }}
                 primary={primary}
                 hasBorder={false}
               />
-            </View>
+            )}
           </View>
+        </View>
 
-          {/* Player Settings */}
-          <View className="mb-6">
-            <Text className="text-gray-400 text-sm mb-3">Player</Text>
-            <View className="bg-[#1A1A1A] rounded-xl overflow-hidden">
-              {/* External Player */}
-              <TVFocusableSwitchRow
-                label="Always Use External Player"
-                value={OpenExternalPlayer}
-                onValueChange={() => {
-                  settingsStorage.setBool(
-                    'useExternalPlayer',
-                    !OpenExternalPlayer,
-                  );
-                  setOpenExternalPlayer(!OpenExternalPlayer);
-                }}
-                primary={primary}
-              />
+        {/* Network Settings */}
+        <View className="mb-6">
+          <Text className="text-gray-400 text-sm mb-3">Network</Text>
+          <View className="bg-[#1A1A1A] rounded-xl p-4">
+            {/* User Agent */}
+            <Text className="text-white text-base mb-2">User-Agent</Text>
+            <TextInput
+              style={{
+                color: 'white',
+                backgroundColor: '#333333',
+                borderRadius: 8,
+                padding: 12,
+                marginBottom: 16
+              }}
+              placeholder={isTV ? "Enter Custom User-Agent" : "Select or Enter User-Agent"}
+              placeholderTextColor="gray"
+              value={userAgent}
+              onChangeText={(text) => {
+                setUserAgent(text);
+              }}
+              onSubmitEditing={(e) => {
+                settingsStorage.setUserAgent(e.nativeEvent.text);
+                ToastAndroid.show('User-Agent Saved', ToastAndroid.SHORT);
+              }}
+            />
 
-              {/* Media Controls */}
-              <TVFocusableSwitchRow
-                label="Media Controls"
-                value={showMediaControls}
-                onValueChange={() => {
-                  settingsStorage.setShowMediaControls(!showMediaControls);
-                  setShowMediaControls(!showMediaControls);
-                }}
-                primary={primary}
-              />
+            {/* Custom DNS */}
+            <Text className="text-white text-base mb-2">Custom DNS (DoH)</Text>
+            <TextInput
+              style={{
+                color: 'white',
+                backgroundColor: '#333333',
+                borderRadius: 8,
+                padding: 12,
+              }}
+              placeholder="https://..."
+              placeholderTextColor="gray"
+              value={dnsUrl}
+              onChangeText={(text) => {
+                setDnsUrl(text);
+              }}
+              onSubmitEditing={(e) => {
+                settingsStorage.setDnsUrl(e.nativeEvent.text);
+                ToastAndroid.show('DNS Saved', ToastAndroid.SHORT);
+              }}
+            />
+            <Text className="text-gray-500 text-xs mt-2">
+              Enter a valid DNS-over-HTTPS URL.
+            </Text>
+          </View>
+        </View>
 
-              {/* Hide Seek Buttons */}
-              <TVFocusableSwitchRow
-                label="Hide Seek Buttons"
-                value={hideSeekButtons}
-                onValueChange={() => {
-                  settingsStorage.setHideSeekButtons(!hideSeekButtons);
-                  setHideSeekButtons(!hideSeekButtons);
-                }}
-                primary={primary}
-              />
-
-              {/* Swipe Gestures */}
-              {!isTV && (
-                <TVFocusableSwitchRow
-                  label="Enable Swipe Gestures"
-                  value={enableSwipeGesture}
-                  onValueChange={() => {
-                    settingsStorage.setSwipeGestureEnabled(!enableSwipeGesture);
-                    setEnableSwipeGesture(!enableSwipeGesture);
+        {/* Quality Settings */}
+        <View className="mb-6">
+          <Text className="text-gray-400 text-sm mb-3">Quality</Text>
+          <View className="bg-[#1A1A1A] rounded-xl p-4">
+            <Text className="text-white text-base mb-3">
+              Excluded Qualities
+            </Text>
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap' }}>
+              {['360p', '480p', '720p'].map((quality, index) => (
+                <TVFocusableQualityButton
+                  key={index}
+                  quality={quality}
+                  isExcluded={ExcludedQualities.includes(quality)}
+                  onPress={() => {
+                    if (settingsStorage.isHapticFeedbackEnabled()) {
+                      RNReactNativeHapticFeedback.trigger('effectTick');
+                    }
+                    const newExcluded = ExcludedQualities.includes(quality)
+                      ? ExcludedQualities.filter(q => q !== quality)
+                      : [...ExcludedQualities, quality];
+                    setExcludedQualities(newExcluded);
+                    settingsStorage.setExcludedQualities(newExcluded);
                   }}
                   primary={primary}
-                  hasBorder={false}
                 />
-              )}
+              ))}
             </View>
           </View>
-
-          {/* Network Settings */}
-          <View className="mb-6">
-            <Text className="text-gray-400 text-sm mb-3">Network</Text>
-            <View className="bg-[#1A1A1A] rounded-xl p-4">
-              {/* User Agent */}
-              <Text className="text-white text-base mb-2">User-Agent</Text>
-              <TextInput
-                style={{
-                  color: 'white',
-                  backgroundColor: '#333333',
-                  borderRadius: 8,
-                  padding: 12,
-                  marginBottom: 16
-                }}
-                placeholder={isTV ? "Enter Custom User-Agent" : "Select or Enter User-Agent"}
-                placeholderTextColor="gray"
-                value={userAgent}
-                onChangeText={(text) => {
-                  setUserAgent(text);
-                }}
-                onSubmitEditing={(e) => {
-                  settingsStorage.setUserAgent(e.nativeEvent.text);
-                  ToastAndroid.show('User-Agent Saved', ToastAndroid.SHORT);
-                }}
-              />
-
-              {/* Custom DNS */}
-              <Text className="text-white text-base mb-2">Custom DNS (DoH)</Text>
-              <TextInput
-                style={{
-                  color: 'white',
-                  backgroundColor: '#333333',
-                  borderRadius: 8,
-                  padding: 12,
-                }}
-                placeholder="https://..."
-                placeholderTextColor="gray"
-                value={dnsUrl}
-                onChangeText={(text) => {
-                  setDnsUrl(text);
-                }}
-                onSubmitEditing={(e) => {
-                  settingsStorage.setDnsUrl(e.nativeEvent.text);
-                  ToastAndroid.show('DNS Saved', ToastAndroid.SHORT);
-                }}
-              />
-              <Text className="text-gray-500 text-xs mt-2">
-                Enter a valid DNS-over-HTTPS URL.
-              </Text>
-            </View>
-          </View>
-
-          {/* Quality Settings */}
-          <View className="mb-6">
-            <Text className="text-gray-400 text-sm mb-3">Quality</Text>
-            <View className="bg-[#1A1A1A] rounded-xl p-4">
-              <Text className="text-white text-base mb-3">
-                Excluded Qualities
-              </Text>
-              <View style={{ flexDirection: 'row', flexWrap: 'wrap' }}>
-                {['360p', '480p', '720p'].map((quality, index) => (
-                  <TVFocusableQualityButton
-                    key={index}
-                    quality={quality}
-                    isExcluded={ExcludedQualities.includes(quality)}
-                    onPress={() => {
-                      if (settingsStorage.isHapticFeedbackEnabled()) {
-                        RNReactNativeHapticFeedback.trigger('effectTick');
-                      }
-                      const newExcluded = ExcludedQualities.includes(quality)
-                        ? ExcludedQualities.filter(q => q !== quality)
-                        : [...ExcludedQualities, quality];
-                      setExcludedQualities(newExcluded);
-                      settingsStorage.setExcludedQualities(newExcluded);
-                    }}
-                    primary={primary}
-                  />
-                ))}
-              </View>
-            </View>
-          </View>
-
-          <View className="h-16" />
         </View>
-      </ScrollView>
-    );
-  };
 
-  export default Preferences;
+        <View className="h-16" />
+      </View>
+    </ScrollView>
+  );
+};
+
+export default Preferences;

@@ -1,4 +1,4 @@
-import React, {useState, useEffect} from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -11,9 +11,10 @@ import {
   Image,
   Platform,
   Pressable,
+  TextInput,
 } from 'react-native';
-import {NativeStackScreenProps} from '@react-navigation/native-stack';
-import {SettingsStackParamList} from '../../App';
+import { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { SettingsStackParamList } from '../../App';
 import {
   MaterialCommunityIcons,
   MaterialIcons,
@@ -26,13 +27,13 @@ import {
   extensionStorage,
   ProviderExtension,
 } from '../../lib/storage/extensionStorage';
-import {extensionManager} from '../../lib/services/ExtensionManager';
+import { extensionManager } from '../../lib/services/ExtensionManager';
 import {
   updateProvidersService,
   UpdateInfo,
 } from '../../lib/services/UpdateProviders';
 import ReactNativeHapticFeedback from 'react-native-haptic-feedback';
-import {settingsStorage} from '../../lib/storage';
+import { settingsStorage } from '../../lib/storage';
 import RenderProviderFlagIcon from '../../components/RenderProviderFLagIcon';
 import Animated, {
   useSharedValue,
@@ -46,8 +47,8 @@ type Props = NativeStackScreenProps<SettingsStackParamList, 'Extensions'>;
 
 type TabType = 'installed' | 'available';
 
-const Extensions = ({navigation}: Props) => {
-  const {primary} = useThemeStore(state => state);
+const Extensions = ({ navigation }: Props) => {
+  const { primary } = useThemeStore(state => state);
   const {
     provider: activeExtensionProvider,
     setProvider: setActiveExtensionProvider,
@@ -65,6 +66,12 @@ const Extensions = ({navigation}: Props) => {
   const [updatingProvider, setUpdatingProvider] = useState<string | null>(null);
   const [updateInfos, setUpdateInfos] = useState<UpdateInfo[]>([]);
   const [refreshing, setRefreshing] = useState(false);
+  const [isPerformingBulkAction, setIsPerformingBulkAction] = useState(false);
+
+  // Search and Filter State
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filterType, setFilterType] = useState<'all' | 'movie' | 'tv'>('all');
+  const [filterCategory, setFilterCategory] = useState<'all' | 'global' | 'local'>('all');
   // Load providers on component mount
   useEffect(() => {
     const initializeExtensions = async () => {
@@ -193,11 +200,10 @@ const Extensions = ({navigation}: Props) => {
 
     Alert.alert(
       'Uninstall Provider',
-      `Are you sure you want to uninstall ${
-        provider.display_name || 'this provider'
+      `Are you sure you want to uninstall ${provider.display_name || 'this provider'
       }?`,
       [
-        {text: 'Cancel', style: 'cancel'},
+        { text: 'Cancel', style: 'cancel' },
         {
           text: 'Uninstall',
           style: 'destructive',
@@ -259,6 +265,103 @@ const Extensions = ({navigation}: Props) => {
       setRefreshing(false);
     }
   };
+
+  // --- BULK ACTION FUNCTIONS ---
+  const handleEnableAllProviders = async () => {
+    if (settingsStorage.isHapticFeedbackEnabled()) {
+      ReactNativeHapticFeedback.trigger('effectClick', {
+        enableVibrateFallback: true,
+        ignoreAndroidSystemSettings: false,
+      });
+    }
+
+    const availableToInstall = (availableProviders || []).filter(
+      provider =>
+        provider &&
+        provider.value &&
+        !extensionStorage.isProviderInstalled(provider.value),
+    );
+
+    if (availableToInstall.length === 0) {
+      Alert.alert('Info', 'All available providers are already installed.');
+      return;
+    }
+
+    Alert.alert(
+      'Enable All',
+      `Are you sure you want to install ${availableToInstall.length} providers?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Install All',
+          style: 'default',
+          onPress: async () => {
+            setIsPerformingBulkAction(true);
+            try {
+              // Use Promise.all to install all providers in parallel
+              await Promise.all(
+                availableToInstall.map(provider =>
+                  extensionManager.installProvider(provider),
+                ),
+              );
+              loadProviders();
+              Alert.alert(
+                'Success',
+                'All available providers have been installed!',
+              );
+              setActiveTab('installed');
+            } catch (error) {
+              console.error('Bulk installation error:', error);
+              Alert.alert(
+                'Error',
+                'Failed to install all providers. Please try again.',
+              );
+            } finally {
+              setIsPerformingBulkAction(false);
+            }
+          },
+        },
+      ],
+    );
+  };
+
+  const handleDisableAllProviders = () => {
+    if (settingsStorage.isHapticFeedbackEnabled()) {
+      ReactNativeHapticFeedback.trigger('effectClick', {
+        enableVibrateFallback: true,
+        ignoreAndroidSystemSettings: false,
+      });
+    }
+
+    if ((installedProviders || []).length === 0) {
+      Alert.alert('Info', 'No providers are currently installed.');
+      return;
+    }
+
+    Alert.alert(
+      'Disable All',
+      `Are you sure you want to uninstall all installed providers?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Uninstall All',
+          style: 'destructive',
+          onPress: () => {
+            // Create a new function to uninstall without alerts to prevent multiple dialogs
+            const uninstallWithoutAlert = (provider: ProviderExtension) => {
+              if (!provider || !provider.value) return;
+              extensionStorage.uninstallProvider(provider.value);
+            };
+            installedProviders?.forEach(uninstallWithoutAlert);
+            loadProviders();
+            setActiveExtensionProvider(undefined);
+            Alert.alert('Success', 'All providers have been uninstalled!');
+          },
+        },
+      ],
+    );
+  };
+
   const renderProviderCard = ({
     item,
     index,
@@ -277,7 +380,7 @@ const Extensions = ({navigation}: Props) => {
     const hasUpdate = updateInfo?.hasUpdate || false;
 
     // TV focusable card wrapper
-    const TVFocusableCard = ({children}: {children: React.ReactNode}) => {
+    const TVFocusableCard = ({ children }: { children: React.ReactNode }) => {
       const borderWidth = useSharedValue(0);
 
       const animatedStyle = useAnimatedStyle(() => ({
@@ -294,14 +397,14 @@ const Extensions = ({navigation}: Props) => {
                 : handleInstallProvider(item)
             }
             onFocus={() => {
-              borderWidth.value = withTiming(3, {duration: 150});
+              borderWidth.value = withTiming(3, { duration: 150 });
             }}
             onBlur={() => {
-              borderWidth.value = withTiming(0, {duration: 150});
+              borderWidth.value = withTiming(0, { duration: 150 });
             }}
             hasTVPreferredFocus={index === 0}
             isTVSelectable={true}
-            style={{marginHorizontal: 16, marginBottom: 16}}>
+            style={{ marginHorizontal: 16, marginBottom: 16 }}>
             <Animated.View
               style={[
                 animatedStyle,
@@ -321,7 +424,7 @@ const Extensions = ({navigation}: Props) => {
       return (
         <View
           className="bg-tertiary rounded-2xl p-5 py-3 mb-4 mx-4 shadow-lg border border-quaternary"
-          style={{elevation: 4}}>
+          style={{ elevation: 4 }}>
           {children}
         </View>
       );
@@ -333,9 +436,9 @@ const Extensions = ({navigation}: Props) => {
           {/* Left: Icon */}
           {item.icon ? (
             <Image
-              source={{uri: item.icon}}
+              source={{ uri: item.icon }}
               className="w-12 h-12 rounded-xl border-2 border-primary bg-quaternary"
-              style={{resizeMode: 'cover'}}
+              style={{ resizeMode: 'cover' }}
             />
           ) : (
             <View className="px-3 py-2 bg-quaternary rounded-xl border border-gray-700">
@@ -350,7 +453,7 @@ const Extensions = ({navigation}: Props) => {
               </Text>
               {hasUpdate && updateInfo && (
                 <View
-                  style={{backgroundColor: primary}}
+                  style={{ backgroundColor: primary }}
                   className="px-2 py-0.5 rounded-full ml-1">
                   <Text className="text-xs text-white font-semibold bg-gray-800">
                     Update
@@ -372,10 +475,9 @@ const Extensions = ({navigation}: Props) => {
               <>
                 <TouchableOpacity
                   onPress={() => handleSetActiveProvider(item)}
-                  className={`w-9 h-9 rounded-full items-center justify-center ${
-                    isActive ? 'bg-green-600' : 'bg-gray-700'
-                  }`}
-                  style={{opacity: isActive ? 1 : 0.9}}>
+                  className={`w-9 h-9 rounded-full items-center justify-center ${isActive ? 'bg-green-600' : 'bg-gray-700'
+                    }`}
+                  style={{ opacity: isActive ? 1 : 0.9 }}>
                   <MaterialIcons
                     name={isActive ? 'check-circle' : 'radio-button-unchecked'}
                     size={20}
@@ -437,10 +539,50 @@ const Extensions = ({navigation}: Props) => {
       </TVFocusableCard>
     );
   };
-  const currentData =
-    activeTab === 'installed'
-      ? (installedProviders || []).filter(item => item && item.value)
-      : (availableProviders || []).filter(item => item && item.value);
+  const getFilteredData = () => {
+    const baseData = activeTab === 'installed'
+      ? (installedProviders || [])
+      : (availableProviders || []);
+
+    return baseData.filter(item => {
+      if (!item || !item.value) return false;
+
+      // Search Filter
+      const matchesSearch = item.display_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        item.name?.toLowerCase().includes(searchQuery.toLowerCase());
+      if (!matchesSearch) return false;
+
+      // Type Filter
+      if (filterType !== 'all') {
+        // Assuming item.type contains 'movie' or 'tv' or similar
+        // We need to check actual type strings from provider. 
+        // Common types: 'movie', 'series', 'anime', 'tv', etc.
+        // If filter is 'movie', accept 'movie'. If 'tv', accept 'series', 'tv', 'anime'.
+        if (filterType === 'movie' && !item.type?.toLowerCase().includes('movie')) return false;
+        if (filterType === 'tv' && item.type?.toLowerCase().includes('movie')) return false; // Crude check
+      }
+
+      // Category Filter - Assuming metadata or flag
+      // For now, let's just stick to Type and Search as Category might need specific manifest fields.
+      // If 'Global' vs 'Local' refers to something specific in Android app, I should check.
+      // Android 'Category' filter checks `item.isLocal`? 
+      // I'll stick to Search and Type for now as they are most clear.
+
+      return true;
+    });
+  };
+
+  const currentData = getFilteredData();
+
+  const FilterButton = ({ label, isActive, onPress }: { label: string, isActive: boolean, onPress: () => void }) => (
+    <TouchableOpacity
+      onPress={onPress}
+      className={`px-4 py-2 rounded-full mr-2 ${isActive ? 'bg-primary' : 'bg-gray-800/50'}`}
+      style={{ backgroundColor: isActive ? primary : '#1f2937' }}
+    >
+      <Text className={`font-medium ${isActive ? 'text-white' : 'text-gray-400'}`}>{label}</Text>
+    </TouchableOpacity>
+  );
 
   return (
     <View className="flex-1 bg-black pt-10 pb-16">
@@ -451,9 +593,35 @@ const Extensions = ({navigation}: Props) => {
           <AntDesign name="arrow-left" size={24} color="white" />
         </TouchableOpacity>
         <Text className="text-white text-xl font-semibold">Providers</Text>
-        <TouchableOpacity onPress={handleRefresh}>
-          <Feather name="refresh-cw" size={24} color={primary} />
-        </TouchableOpacity>
+        <View className="flex-row items-center space-x-2 gap-4">
+          {isPerformingBulkAction ? (
+            <ActivityIndicator size="small" color={primary} />
+          ) : (
+            <>
+              {activeTab === 'available' && (
+                <TouchableOpacity onPress={handleEnableAllProviders}>
+                  <MaterialCommunityIcons
+                    name="download-multiple"
+                    size={24}
+                    color={primary}
+                  />
+                </TouchableOpacity>
+              )}
+              {activeTab === 'installed' && (
+                <TouchableOpacity onPress={handleDisableAllProviders}>
+                  <MaterialCommunityIcons
+                    name="delete-sweep"
+                    size={24}
+                    color="red"
+                  />
+                </TouchableOpacity>
+              )}
+            </>
+          )}
+          <TouchableOpacity onPress={handleRefresh}>
+            <Feather name="refresh-cw" size={24} color={primary} />
+          </TouchableOpacity>
+        </View>
       </View>
       {/* Tabs */}
       <View className="flex-row bg-quaternary mx-4 mt-4 rounded-xl">
@@ -465,9 +633,8 @@ const Extensions = ({navigation}: Props) => {
               activeTab === 'installed' ? primary : 'transparent',
           }}>
           <Text
-            className={`text-center font-medium ${
-              activeTab === 'installed' ? 'text-white' : 'text-gray-400'
-            }`}>
+            className={`text-center font-medium ${activeTab === 'installed' ? 'text-white' : 'text-gray-400'
+              }`}>
             Installed ({(installedProviders || []).length})
           </Text>
         </TouchableOpacity>
@@ -480,16 +647,44 @@ const Extensions = ({navigation}: Props) => {
               activeTab === 'available' ? primary : 'transparent',
           }}>
           <Text
-            className={`text-center font-medium ${
-              activeTab === 'available' ? 'text-white' : 'text-gray-400'
-            }`}>
+            className={`text-center font-medium ${activeTab === 'available' ? 'text-white' : 'text-gray-400'
+              }`}>
             Available ({(availableProviders || []).length})
           </Text>
         </TouchableOpacity>
       </View>
+
+      {/* Search and Filters */}
+      <View className="px-4 mt-4">
+        {/* Search Bar */}
+        <View className="flex-row items-center bg-gray-800/50 rounded-xl px-3 mb-4 border border-gray-700">
+          <Feather name="search" size={20} color="gray" />
+          <TextInput
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            placeholder="Search providers..."
+            placeholderTextColor="#9ca3af"
+            className="flex-1 text-white p-3 text-base"
+            style={{ color: 'white' }}
+          />
+          {searchQuery.length > 0 && (
+            <TouchableOpacity onPress={() => setSearchQuery('')}>
+              <Feather name="x" size={20} color="gray" />
+            </TouchableOpacity>
+          )}
+        </View>
+
+        {/* Filter Buttons */}
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} className="flex-row mb-2">
+          <FilterButton label="All" isActive={filterType === 'all'} onPress={() => setFilterType('all')} />
+          <FilterButton label="Movies" isActive={filterType === 'movie'} onPress={() => setFilterType('movie')} />
+          <FilterButton label="TV Series" isActive={filterType === 'tv'} onPress={() => setFilterType('tv')} />
+        </ScrollView>
+      </View>
+
       {/* Provider list */}
       <ScrollView
-        style={{flex: 1, marginTop: 16}}
+        style={{ flex: 1, marginTop: 16 }}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
@@ -520,12 +715,12 @@ const Extensions = ({navigation}: Props) => {
         ) : (
           currentData.map((item, index) => (
             <View key={item?.value || `provider-${index}`}>
-              {renderProviderCard({item, index})}
+              {renderProviderCard({ item, index })}
             </View>
           ))
         )}
       </ScrollView>
-    </View>
+    </View >
   );
 };
 

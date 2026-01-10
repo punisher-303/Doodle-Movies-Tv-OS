@@ -48,7 +48,7 @@ export enum SettingsKeys {
 export class SettingsStorage {
   // Theme settings
   getPrimaryColor(): string {
-    return mainStorage.getString(SettingsKeys.PRIMARY_COLOR) || '#FF6347';
+    return mainStorage.getString(SettingsKeys.PRIMARY_COLOR) || '#E50914';
   }
 
   setPrimaryColor(color: string): void {
@@ -64,7 +64,7 @@ export class SettingsStorage {
   }
 
   getCustomColor(): string {
-    return mainStorage.getString(SettingsKeys.CUSTOM_COLOR) || '#FF6347';
+    return mainStorage.getString(SettingsKeys.CUSTOM_COLOR) || '#E50914';
   }
 
   setCustomColor(color: string): void {
@@ -73,9 +73,7 @@ export class SettingsStorage {
 
   // UI preferences
   showTabBarLabels(): boolean {
-    return mainStorage.getBool(SettingsKeys.SHOW_TAB_BAR_LABELS) === null
-      ? false
-      : mainStorage.getBool(SettingsKeys.SHOW_TAB_BAR_LABELS);
+    return mainStorage.getBool(SettingsKeys.SHOW_TAB_BAR_LABELS, true);
   }
 
   setShowTabBarLabels(show: boolean): void {
