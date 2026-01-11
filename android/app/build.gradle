@@ -91,7 +91,7 @@ if (localPropertiesFile.exists()) {
 def jscFlavor = 'org.webkit:android-jsc:+'
 
 android {
-    ndkVersion rootProject.ext.ndkVersion
+    ndkVersion = "28.0.13004108"
     
     // Ensure APK splitting by ABI
     splits {
