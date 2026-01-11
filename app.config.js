@@ -101,7 +101,7 @@ module.exports = () => {
       autolinking: { exclude: ['expo-splash-screen'] },
       plugins,
       slug: 'doodle-movies',
-      version: '10.0.4',
+      version: '10.0.5',
       userInterfaceStyle: 'dark',
       android: {
         ...(hasAndroidGoogleServices
@@ -110,7 +110,7 @@ module.exports = () => {
         minSdkVersion: 24,
         edgeToEdgeEnabled: true,
         package: 'com.doodle.movies',
-        versionCode: 186,
+        versionCode: 200187,
         permissions: [
           'FOREGROUND_SERVICE',
           'FOREGROUND_SERVICE_MEDIA_PLAYBACK',
