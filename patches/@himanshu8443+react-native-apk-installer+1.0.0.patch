@@ -1,0 +1,12 @@
+diff --git a/node_modules/@himanshu8443/react-native-apk-installer/android/src/main/AndroidManifest.xml b/node_modules/@himanshu8443/react-native-apk-installer/android/src/main/AndroidManifest.xml
+index e90bdaf..868bb21 100644
+--- a/node_modules/@himanshu8443/react-native-apk-installer/android/src/main/AndroidManifest.xml
++++ b/node_modules/@himanshu8443/react-native-apk-installer/android/src/main/AndroidManifest.xml
+@@ -1,7 +1,6 @@
+ <manifest xmlns:android="http://schemas.android.com/apk/res/android"
+     package="com.himanshu8443.apkinstaller">
+ 
+-    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
+     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
+     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
+ 
