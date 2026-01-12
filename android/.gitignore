@@ -14,8 +14,3 @@ local.properties
 
 # Bundle artifacts
 *.jsbundle
-
-#keystore
-*.jks
-android/*.jks
-android/key.properties
