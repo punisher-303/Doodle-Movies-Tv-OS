@@ -114,11 +114,10 @@ module.exports = () => {
           'FOREGROUND_SERVICE',
           'FOREGROUND_SERVICE_MEDIA_PLAYBACK',
           'INTERNET',
-          'MANAGE_EXTERNAL_STORAGE',
           'READ_EXTERNAL_STORAGE',
           'READ_MEDIA_VIDEO',
           'WRITE_EXTERNAL_STORAGE',
-          'WRITE_SETTINGS',
+          'RECORD_AUDIO', // Added for potential voice search parity
         ],
         manifestPermissions: [
           { name: 'READ_EXTERNAL_STORAGE', maxSdkVersion: 32 },
@@ -138,6 +137,8 @@ module.exports = () => {
         },
         launchMode: 'singleTask',
         supportsPictureInPicture: true,
+        // Explicit features for TV compliance
+        intentFilters: [], // Clean up if needed
       },
       ios: {
         ...(hasIosGooglePlist

@@ -59,6 +59,15 @@ const getWatchTogetherMode = () => {
   return modeStr === 'true' ? true : false;
 };
 
+const getLatencyColor = (latency: number | null | undefined) => {
+  if (latency === undefined || latency === null) return 'gray';
+  if (latency === -1) return '#EF4444'; // Red (Error)
+  if (latency < 300) return '#22C55E'; // Green (Good)
+  if (latency < 800) return '#EAB308'; // Yellow (Okay)
+  return '#EF4444'; // Red (Slow)
+};
+
+
 const setWatchTogetherModeStorage = (mode: boolean) => {
   cacheStorageService.setString(KEY_WATCH_TOGETHER, String(mode));
 };
@@ -172,12 +181,14 @@ const TVFocusableProviderItem = ({
   onPress,
   primary,
   index,
+  latency,
 }: {
   item: ProviderExtension;
   isSelected: boolean;
   onPress: () => void;
   primary: string;
   index: number;
+  latency?: number | null;
 }) => {
   const borderWidth = useSharedValue(0);
 
@@ -227,7 +238,8 @@ const TVFocusableProviderItem = ({
                 width: 8,
                 height: 8,
                 borderRadius: 4,
-                backgroundColor: getLatencyColor(pingStatus[item.value])
+                borderRadius: 4,
+                backgroundColor: getLatencyColor(latency)
               }}
             />
             <RenderProviderFlagIcon type={item.type} />
@@ -529,13 +541,7 @@ const Settings = ({ navigation }: Props) => {
     }
   }, [installedProviders]);
 
-  const getLatencyColor = (latency: number | null | undefined) => {
-    if (latency === undefined || latency === null) return 'gray';
-    if (latency === -1) return '#EF4444'; // Red (Error)
-    if (latency < 300) return '#22C55E'; // Green (Good)
-    if (latency < 800) return '#EAB308'; // Yellow (Okay)
-    return '#EF4444'; // Red (Slow)
-  };
+  // getLatencyColor moved to module scope
 
   const toggleWatchTogether = useCallback(() => {
     const newState = !watchTogetherMode;
@@ -695,9 +701,10 @@ const Settings = ({ navigation }: Props) => {
         onPress={() => handleProviderSelect(item)}
         primary={primary}
         index={index}
+        latency={pingStatus[item.value]}
       />
     ),
-    [handleProviderSelect, primary],
+    [handleProviderSelect, primary, pingStatus],
   );
 
   const providersList = useMemo(
@@ -822,30 +829,6 @@ const Settings = ({ navigation }: Props) => {
           </View>
         </AnimatedSection>
         {/* ----------------------------------- */}
-
-        {/* App Mode */}
-        <AnimatedSection delay={isTV ? 0 : 50}>
-          <View className="mb-6 flex-col gap-3">
-            <Text className="text-gray-400 text-sm mb-1">App Mode</Text>
-            <View className="bg-[#1A1A1A] rounded-xl overflow-hidden">
-              <TVFocusableSwitchItem
-                icon={<MaterialCommunityIcons name="television-play" size={22} color={primary} />}
-                label="Doodle-TV Mode"
-                value={appMode === 'doodleTv'}
-                onValueChange={() => {
-                  setAppMode('doodleTv');
-                  if (settingsStorage.isHapticFeedbackEnabled()) {
-                    ReactNativeHapticFeedback.trigger('impactLight', {
-                      enableVibrateFallback: true,
-                      ignoreAndroidSystemSettings: false,
-                    });
-                  }
-                }}
-                primary={primary}
-              />
-            </View>
-          </View>
-        </AnimatedSection>
 
         {/* Watch Together Section */}
         <AnimatedSection delay={isTV ? 0 : 200}>
